@@ -1,0 +1,11 @@
+FROM node:10
+RUN groupadd -g 999 -r outline && useradd -r -g outline -u 999 outline
+RUN mkdir /usr/src/app
+WORKDIR /usr/src/app
+COPY package.json /usr/src/app
+RUN npm install
+COPY . /usr/src/app
+RUN chmod 755 docker-entrypoint.sh && npm run build
+USER outline
+ENTRYPOINT ["/usr/src/app/docker-entrypoint.sh"]
+CMD ["node", "index.js"]

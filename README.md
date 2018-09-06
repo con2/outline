@@ -1,3 +1,43 @@
+![Con2 – Collaboration Hub for Volunteer-Run Conventions in Finland](https://con2.fi/media/uploads/2018/08/23/con2_wide_800.png)
+
+# Con2 distribution of Outline (wiki.con2.fi)
+
+This is the Con2 distribution of Outline. We extend Outline to provide OAuth2/OIDC authentication against our custom backend and provide a production ready Docker deployment for use with Kubernetes.
+
+## Local modifications and TODO list
+
+* [ ] Fix the FIXMEs in `kubernetes.in.yml`
+  * [ ] Hardcoded `SECRET_KEY`
+    * Outline requires the `SECRET_KEY` to be exactly 32 bytes in hex.
+    * On QB we would otherwise use [kubernetes-secret-generator](https://github.com/mittwald/kubernetes-secret-generator), but its random strings do not meet this requirement.
+  * [ ] `fake-s3` is not production ready
+    * Use real S3 if we have the budget
+    * Otherwise deploy a production-ready S3 wannabe
+* [ ] Kompassi OAuth2/OIDC authentication
+  * If we can implement a standards-compliant OIDC endpoint on Kompassi, we could upstream an OIDC authentication provider.
+  * Otherwise interface with the current proprietary OAuth2+REST solution.
+* [ ] Kompassi authorization: Map (some) Kompassi groups into Outline teams
+  * Where do we configure the mapping?
+  * Multiple groups map to the same team
+    * ie. `turska-frostbite2019-labour-vastaava` and `…-desucon2019-…` both give access to the Desucon team
+
+## Conventions
+
+Like, not events, but rules you should follow.
+
+### Git
+
+* Prefix all Con2 specific commits with "CON2:".
+* Keep changes to Outline to a bare minimum in order to preserve maintainability.
+* Prefer additions to in-place modifications.
+* Merge from Outline upstream periodically.
+
+# End of Con2 specific information
+
+Original `README.md` follows.
+
+
+
 <p align="center">
   <img src="https://user-images.githubusercontent.com/31465/34380645-bd67f474-eb0b-11e7-8d03-0151c1730654.png" height="29" />
 </p>
