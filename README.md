@@ -6,6 +6,10 @@ This is the Con2 distribution of Outline. We extend Outline to provide OAuth2/OI
 
 ## Local modifications and TODO list
 
+* [X] Single-user local authentication backend
+  * Allows you to skip Slack/Github authentication by setting `LOCAL_AUTH_ENABLED=yes`
+  * Offered upstream ([PR](https://github.com/outline/outline/pull/770)), rejected
+  * Do not enable in production!
 * [ ] Fix the FIXMEs in `kubernetes.in.yml`
   * [ ] Hardcoded `SECRET_KEY`
     * Outline requires the `SECRET_KEY` to be exactly 32 bytes in hex.
