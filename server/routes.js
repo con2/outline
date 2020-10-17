@@ -92,6 +92,7 @@ router.get("/", async ctx => {
           lastSignedIn={lastSignedIn}
           googleSigninEnabled={!!process.env.GOOGLE_CLIENT_ID}
           slackSigninEnabled={!!process.env.SLACK_KEY}
+          kompassiSigninEnabled={!!process.env.KOMPASSI_CLIENT_ID}
           localSigninEnabled={!!process.env.LOCAL_AUTH_ENABLED}
           hostname={ctx.request.hostname}
         />
@@ -110,6 +111,7 @@ router.get("/", async ctx => {
       lastSignedIn={lastSignedIn}
       googleSigninEnabled={!!process.env.GOOGLE_CLIENT_ID}
       slackSigninEnabled={!!process.env.SLACK_KEY}
+      kompassiSigninEnabled={!!process.env.KOMPASSI_CLIENT_ID}
       localSigninEnabled={!!process.env.LOCAL_AUTH_ENABLED}
     />
   );

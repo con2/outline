@@ -14,6 +14,7 @@ type Props = {
   googleSigninEnabled: boolean,
   slackSigninEnabled: boolean,
   localSigninEnabled: boolean,
+  kompassiSigninEnabled: boolean,
   guestSigninEnabled?: boolean,
 };
 
@@ -22,12 +23,14 @@ const SigninButtons = ({
   slackSigninEnabled,
   googleSigninEnabled,
   localSigninEnabled,
+  kompassiSigninEnabled,
   guestSigninEnabled,
 }: Props) => {
   return (
     <Wrapper>
       {!slackSigninEnabled &&
         !googleSigninEnabled &&
+        !kompassiSigninEnabled &&
         !localSigninEnabled && (
           <Notice>
             Neither Slack or Google sign in is enabled. You must configure at
@@ -55,6 +58,13 @@ const SigninButtons = ({
             {lastSignedIn === "google" &&
               "You signed in with Google previously"}
           </LastLogin>
+        </Column>
+      )}
+      {kompassiSigninEnabled && (
+        <Column column>
+          <Button href={signin("kompassi")}>
+            <Spacer>Kirjaudu sisään Kompassi-tunnuksella</Spacer>
+          </Button>
         </Column>
       )}
       {localSigninEnabled && (

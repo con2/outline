@@ -18,6 +18,7 @@ type Props = {
   lastSignedIn: string,
   googleSigninEnabled: boolean,
   slackSigninEnabled: boolean,
+  kompassiSigninEnabled: boolean,
   localSigninEnabled: boolean,
   hostname: string,
 };
@@ -29,6 +30,7 @@ function SubdomainSignin({
   notice,
   googleSigninEnabled,
   slackSigninEnabled,
+  kompassiSigninEnabled,
   localSigninEnabled,
   hostname,
 }: Props) {
@@ -72,6 +74,7 @@ function SubdomainSignin({
                 <SigninButtons
                   googleSigninEnabled={googleSigninEnabled}
                   slackSigninEnabled={slackSigninEnabled}
+                  kompassiSigninEnabled={kompassiSigninEnabled}
                   localSigninEnabled={localSigninEnabled}
                   lastSignedIn={signinHint}
                 />
@@ -87,6 +90,7 @@ function SubdomainSignin({
                 <SigninButtons
                   googleSigninEnabled={googleSigninEnabled}
                   slackSigninEnabled={slackSigninEnabled}
+                  kompassiSigninEnabled={kompassiSigninEnabled}
                   localSigninEnabled={localSigninEnabled}
                   lastSignedIn={signinHint}
                 />
