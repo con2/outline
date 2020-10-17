@@ -1,27 +1,27 @@
 // @flow
-import Router from 'koa-router';
-import addMonths from 'date-fns/add_months';
-import { User, Team, Event } from '../models';
+import Router from "koa-router";
+import addMonths from "date-fns/add_months";
+import { User, Team, Event } from "../models";
 
 const router = new Router();
 
 if (process.env.LOCAL_AUTH_ENABLED) {
-  router.get('local', async ctx => {
+  router.get("local", async ctx => {
     const [team, isFirstUser] = await Team.findOrCreate({
       where: {
-        name: 'Local',
+        name: "Local",
       },
     });
 
     const [user, isFirstSignin] = await User.findOrCreate({
       where: {
-        service: 'local',
-        serviceId: 'admin',
+        service: "local",
+        serviceId: "admin",
         teamId: team.id,
       },
       defaults: {
-        name: 'admin',
-        email: 'admin@example.com',
+        name: "admin",
+        email: "admin@example.com",
         isAdmin: isFirstUser,
       },
     });
@@ -48,16 +48,16 @@ if (process.env.LOCAL_AUTH_ENABLED) {
     // not awaiting the promise here so that the request is not blocked
     user.updateSignedIn(ctx.request.ip);
 
-    ctx.cookies.set('lastSignedIn', 'local', {
+    ctx.cookies.set("lastSignedIn", "local", {
       httpOnly: false,
-      expires: new Date('2100'),
+      expires: new Date("2100"),
     });
-    ctx.cookies.set('accessToken', user.getJwtToken(), {
+    ctx.cookies.set("accessToken", user.getJwtToken(), {
       httpOnly: false,
       expires: addMonths(new Date(), 1),
     });
 
-    ctx.redirect('/');
+    ctx.redirect("/");
   });
 }
 
