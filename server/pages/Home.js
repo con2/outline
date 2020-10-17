@@ -23,17 +23,14 @@ function Home(props: Props) {
   return (
     <span>
       <Helmet>
-        <title>Outline - Team wiki & knowledge base</title>
+        <title>Con2 Outline</title>
       </Helmet>
       <Grid>
         <Hero id="signin">
           <AuthNotices notice={props.notice} />
           {process.env.TEAM_LOGO && <Logo src={process.env.TEAM_LOGO} />}
-          <h1>Our team’s knowledge base</h1>
-          <HeroText>
-            Team wiki, documentation, meeting notes, playbooks, onboarding, work
-            logs, brainstorming, & more…
-          </HeroText>
+          <h1>Con2 Outline</h1>
+          <HeroText>Tervetuloa Con2-projektin Outline-wikiin!</HeroText>
           <p>
             <SigninButtons {...props} />
           </p>
