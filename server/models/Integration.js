@@ -1,8 +1,7 @@
 // @flow
-import { DataTypes, sequelize } from '../sequelize';
-import events from '../events';
+import { DataTypes, sequelize } from "../sequelize";
 
-const Integration = sequelize.define('integration', {
+const Integration = sequelize.define("integration", {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -16,33 +15,21 @@ const Integration = sequelize.define('integration', {
 
 Integration.associate = models => {
   Integration.belongsTo(models.User, {
-    as: 'user',
-    foreignKey: 'userId',
+    as: "user",
+    foreignKey: "userId",
   });
   Integration.belongsTo(models.Team, {
-    as: 'team',
-    foreignKey: 'teamId',
+    as: "team",
+    foreignKey: "teamId",
   });
   Integration.belongsTo(models.Collection, {
-    as: 'collection',
-    foreignKey: 'collectionId',
+    as: "collection",
+    foreignKey: "collectionId",
   });
   Integration.belongsTo(models.Authentication, {
-    as: 'authentication',
-    foreignKey: 'authenticationId',
+    as: "authentication",
+    foreignKey: "authenticationId",
   });
 };
-
-Integration.addHook('afterCreate', async model => {
-  events.add({ name: 'integrations.create', model });
-});
-
-Integration.addHook('afterUpdate', model =>
-  events.add({ name: 'integrations.update', model })
-);
-
-Integration.addHook('afterDestroy', model =>
-  events.add({ name: 'integrations.delete', model })
-);
 
 export default Integration;

@@ -1,122 +1,106 @@
 // @flow
-import * as React from 'react';
-import styled from 'styled-components';
-import { Block, Change, Node, Mark, Text } from 'slate';
-import RichMarkdownEditor, { Placeholder, schema } from 'rich-markdown-editor';
-import ClickablePadding from 'components/ClickablePadding';
+import * as React from "react";
+import styled from "styled-components";
+import Textarea from "react-autosize-textarea";
+import { observer } from "mobx-react";
+import Editor from "components/Editor";
+import ClickablePadding from "components/ClickablePadding";
+import Flex from "shared/components/Flex";
+import parseTitle from "shared/utils/parseTitle";
+import Document from "models/Document";
+import DocumentMeta from "./DocumentMeta";
 
 type Props = {
-  titlePlaceholder: string,
-  bodyPlaceholder: string,
-  defaultValue?: string,
-  readOnly: boolean,
+  onChangeTitle: (event: SyntheticInputEvent<>) => void,
+  title: string,
+  defaultValue: string,
+  document: Document,
+  isDraft: boolean,
+  readOnly?: boolean,
 };
 
-// add rules to the schema to ensure the first node is a heading
-schema.document.nodes.unshift({ types: ['heading1'], min: 1, max: 1 });
-schema.document.normalize = (
-  change: Change,
-  reason: string,
-  {
-    node,
-    child,
-    mark,
-    index,
-  }: { node: Node, mark?: Mark, child: Node, index: number }
-) => {
-  switch (reason) {
-    case 'child_type_invalid': {
-      return change.setNodeByKey(
-        child.key,
-        index === 0 ? 'heading1' : 'paragraph'
-      );
-    }
-    case 'child_required': {
-      const block = Block.create(index === 0 ? 'heading1' : 'paragraph');
-      return change.insertNodeByKey(node.key, index, block);
-    }
-    default:
-  }
-};
-
-class Editor extends React.Component<Props> {
-  editor: *;
-
-  componentDidMount() {
-    if (!this.props.defaultValue) {
-      this.focusAtStart();
-    }
-  }
-
-  setEditorRef = (ref: RichMarkdownEditor) => {
-    this.editor = ref;
-  };
+@observer
+class DocumentEditor extends React.Component<Props> {
+  editor: ?Editor;
 
   focusAtStart = () => {
-    if (this.editor) this.editor.focusAtStart();
+    if (this.editor) {
+      this.editor.focusAtStart();
+    }
   };
 
   focusAtEnd = () => {
-    if (this.editor) this.editor.focusAtEnd();
+    if (this.editor) {
+      this.editor.focusAtEnd();
+    }
   };
 
-  renderPlaceholder = (props: *) => {
-    const { editor, node } = props;
+  getHeadings = () => {
+    if (this.editor) {
+      return this.editor.getHeadings();
+    }
 
-    if (editor.state.isComposing) return;
-    if (node.object !== 'block') return;
-    if (!Text.isTextList(node.nodes)) return;
-    if (node.text !== '') return;
+    return [];
+  };
 
-    const index = editor.value.document.getBlocks().indexOf(node);
-    if (index > 1) return;
-
-    const text =
-      index === 0 ? this.props.titlePlaceholder : this.props.bodyPlaceholder;
-
-    return <Placeholder>{editor.props.readOnly ? '' : text}</Placeholder>;
+  handleTitleKeyDown = (event: SyntheticKeyboardEvent<>) => {
+    if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      this.focusAtStart();
+    }
   };
 
   render() {
-    const { readOnly } = this.props;
+    const { document, title, onChangeTitle, isDraft, readOnly } = this.props;
+    const { emoji } = parseTitle(title);
+    const startsWithEmojiAndSpace = !!(emoji && title.startsWith(`${emoji} `));
 
     return (
-      <React.Fragment>
-        <StyledEditor
-          innerRef={this.setEditorRef}
-          renderPlaceholder={this.renderPlaceholder}
-          schema={schema}
+      <Flex auto column>
+        <Title
+          type="text"
+          onChange={onChangeTitle}
+          onKeyDown={this.handleTitleKeyDown}
+          placeholder="Start with a title…"
+          value={!title && readOnly ? "Untitled" : title}
+          style={startsWithEmojiAndSpace ? { marginLeft: "-1.2em" } : undefined}
+          readOnly={readOnly}
+          autoFocus={!title}
+          maxLength={100}
+        />
+        <DocumentMeta isDraft={isDraft} document={document} />
+        <Editor
+          ref={ref => (this.editor = ref)}
+          autoFocus={title && !this.props.defaultValue}
+          placeholder="…the rest is up to you"
+          grow
           {...this.props}
         />
-        <ClickablePadding
-          onClick={!readOnly ? this.focusAtEnd : undefined}
-          grow
-        />
-      </React.Fragment>
+        {!readOnly && <ClickablePadding onClick={this.focusAtEnd} grow />}
+      </Flex>
     );
   }
 }
 
-// additional styles account for placeholder nodes not always re-rendering
-const StyledEditor = styled(RichMarkdownEditor)`
-  display: flex;
-  flex: 0;
+const Title = styled(Textarea)`
+  z-index: 1;
+  line-height: 1.25;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  text: ${props => props.theme.text};
+  background: ${props => props.theme.background};
+  transition: ${props => props.theme.backgroundTransition};
+  color: ${props => props.theme.text};
+  font-size: 2.25em;
+  font-weight: 500;
+  outline: none;
+  border: 0;
+  padding: 0;
+  resize: none;
 
-  ${Placeholder} {
-    visibility: hidden;
-  }
-
-  h1:first-of-type {
-    ${Placeholder} {
-      visibility: visible;
-    }
-  }
-
-  p:nth-child(2):last-child {
-    ${Placeholder} {
-      visibility: visible;
-    }
+  &::placeholder {
+    color: ${props => props.theme.placeholder};
   }
 `;
 
-export default Editor;
+export default DocumentEditor;

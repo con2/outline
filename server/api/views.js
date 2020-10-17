@@ -1,55 +1,51 @@
 // @flow
-import Router from 'koa-router';
-import auth from '../middlewares/authentication';
-import { presentView } from '../presenters';
-import { View, Document } from '../models';
-import policy from '../policies';
+import Router from "koa-router";
+import auth from "../middlewares/authentication";
+import { presentView } from "../presenters";
+import { View, Document, Event } from "../models";
+import policy from "../policies";
 
 const { authorize } = policy;
 const router = new Router();
 
-router.post('views.list', auth(), async ctx => {
-  const { id } = ctx.body;
-  ctx.assertPresent(id, 'id is required');
+router.post("views.list", auth(), async ctx => {
+  const { documentId } = ctx.body;
+  ctx.assertUuid(documentId, "documentId is required");
 
   const user = ctx.state.user;
-  const document = await Document.findById(id);
-  authorize(user, 'read', document);
+  const document = await Document.findByPk(documentId, { userId: user.id });
+  authorize(user, "read", document);
 
-  const views = await View.findAll({
-    where: { documentId: id },
-    order: [['updatedAt', 'DESC']],
-  });
-
-  let users = [];
-  let count = 0;
-  await Promise.all(
-    views.map(async view => {
-      count = view.count;
-      return users.push(await presentView(ctx, view));
-    })
-  );
+  const views = await View.findByDocument(documentId);
 
   ctx.body = {
-    data: {
-      users,
-      count,
-    },
+    data: views.map(presentView),
   };
 });
 
-router.post('views.create', auth(), async ctx => {
-  const { id } = ctx.body;
-  ctx.assertPresent(id, 'id is required');
+router.post("views.create", auth(), async ctx => {
+  const { documentId } = ctx.body;
+  ctx.assertUuid(documentId, "documentId is required");
 
   const user = ctx.state.user;
-  const document = await Document.findById(id);
-  authorize(user, 'read', document);
+  const document = await Document.findByPk(documentId, { userId: user.id });
+  authorize(user, "read", document);
 
-  await View.increment({ documentId: document.id, userId: user.id });
+  const view = await View.increment({ documentId, userId: user.id });
 
+  await Event.create({
+    name: "views.create",
+    actorId: user.id,
+    documentId: document.id,
+    collectionId: document.collectionId,
+    teamId: user.teamId,
+    data: { title: document.title },
+    ip: ctx.request.ip,
+  });
+
+  view.user = user;
   ctx.body = {
-    success: true,
+    data: presentView(view),
   };
 });
 

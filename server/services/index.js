@@ -1,22 +1,26 @@
 // @flow
-import fs from 'fs-extra';
-import path from 'path';
+import debug from "debug";
+import fs from "fs-extra";
+import path from "path";
 
+const log = debug("services");
 const services = {};
 
 fs
   .readdirSync(__dirname)
-  .filter(file => file.indexOf('.') !== 0 && file !== path.basename(__filename))
-  .forEach(name => {
-    const servicePath = path.join(__dirname, name);
+  .filter(
+    file =>
+      file.indexOf(".") !== 0 &&
+      file !== path.basename(__filename) &&
+      !file.includes(".test")
+  )
+  .forEach(fileName => {
+    const servicePath = path.join(__dirname, fileName);
+    const name = path.basename(servicePath.replace(/\.js$/, ""));
     // $FlowIssue
-    const pkg = require(path.join(servicePath, 'package.json'));
-    // $FlowIssue
-    const hooks = require(servicePath).default;
-    services[pkg.name] = {
-      ...pkg,
-      ...hooks,
-    };
+    const Service = require(servicePath).default;
+    services[name] = new Service();
+    log(`loaded ${name} service`);
   });
 
 export default services;

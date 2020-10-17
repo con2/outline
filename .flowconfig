@@ -4,15 +4,13 @@
 .*/shared/.*
 
 [ignore]
+.*/node_modules/tiny-cookie/flow/.*
 .*/node_modules/styled-components/.*
 .*/node_modules/polished/.*
 .*/node_modules/react-side-effect/.*
 .*/node_modules/fbjs/.*
-.*/node_modules/slate-edit-code/example/.*
-.*/node_modules/slate-edit-code/lib/.*
-.*/node_modules/slate-edit-list/.*
-.*/node_modules/slate-prism/.*
 .*/node_modules/config-chain/.*
+.*/server/scripts/.*
 *.test.js
 
 [libs]
@@ -23,12 +21,10 @@ emoji=true
 module.system.node.resolve_dirname=node_modules
 module.system.node.resolve_dirname=app
 
-module.name_mapper='^\(.*\)\.s?css$' -> 'empty/object'
 module.name_mapper='^\(.*\)\.md$' -> 'empty/object'
 module.name_mapper='^shared\/\(.*\)$' -> '<PROJECT_ROOT>/shared/\1'
 
 module.file_ext=.js
-module.file_ext=.scss
 module.file_ext=.md
 module.file_ext=.json
 

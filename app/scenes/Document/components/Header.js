@@ -1,52 +1,65 @@
 // @flow
-import * as React from 'react';
-import { throttle } from 'lodash';
-import { observable } from 'mobx';
-import { observer, inject } from 'mobx-react';
-import styled from 'styled-components';
-import breakpoint from 'styled-components-breakpoint';
-import { NewDocumentIcon } from 'outline-icons';
-import Document from 'models/Document';
-import AuthStore from 'stores/AuthStore';
-import { documentEditUrl } from 'utils/routeHelpers';
+import * as React from "react";
+import { throttle } from "lodash";
+import { observable } from "mobx";
+import { observer, inject } from "mobx-react";
+import { Redirect } from "react-router-dom";
+import styled from "styled-components";
+import breakpoint from "styled-components-breakpoint";
+import { TableOfContentsIcon, EditIcon, PlusIcon } from "outline-icons";
+import { transparentize, darken } from "polished";
+import Document from "models/Document";
+import AuthStore from "stores/AuthStore";
+import { documentEditUrl } from "utils/routeHelpers";
+import { meta } from "utils/keyboard";
 
-import Flex from 'shared/components/Flex';
-import Breadcrumb from './Breadcrumb';
-import DocumentMenu from 'menus/DocumentMenu';
-import NewChildDocumentMenu from 'menus/NewChildDocumentMenu';
-import DocumentShare from 'scenes/DocumentShare';
-import Modal from 'components/Modal';
-import Collaborators from 'components/Collaborators';
-import { Action, Separator } from 'components/Actions';
+import Flex from "shared/components/Flex";
+import Breadcrumb, { Slash } from "shared/components/Breadcrumb";
+import DocumentMenu from "menus/DocumentMenu";
+import NewChildDocumentMenu from "menus/NewChildDocumentMenu";
+import DocumentShare from "scenes/DocumentShare";
+import Button from "components/Button";
+import Tooltip from "components/Tooltip";
+import Modal from "components/Modal";
+import Fade from "components/Fade";
+import Badge from "components/Badge";
+import Collaborators from "components/Collaborators";
+import { Action, Separator } from "components/Actions";
+import PoliciesStore from "stores/PoliciesStore";
+import UiStore from "stores/UiStore";
 
 type Props = {
+  auth: AuthStore,
+  ui: UiStore,
+  policies: PoliciesStore,
   document: Document,
   isDraft: boolean,
   isEditing: boolean,
+  isRevision: boolean,
   isSaving: boolean,
   isPublishing: boolean,
+  publishingIsDisabled: boolean,
   savingIsDisabled: boolean,
-  onDiscard: () => *,
+  onDiscard: () => void,
   onSave: ({
     done?: boolean,
     publish?: boolean,
     autosave?: boolean,
-  }) => *,
-  history: Object,
-  auth: AuthStore,
+  }) => void,
 };
 
 @observer
 class Header extends React.Component<Props> {
   @observable isScrolled = false;
   @observable showShareModal = false;
+  @observable redirectTo: ?string;
 
   componentDidMount() {
-    window.addEventListener('scroll', this.handleScroll);
+    window.addEventListener("scroll", this.handleScroll);
   }
 
   componentWillUnmount() {
-    window.removeEventListener('scroll', this.handleScroll);
+    window.removeEventListener("scroll", this.handleScroll);
   }
 
   updateIsScrolled = () => {
@@ -56,7 +69,7 @@ class Header extends React.Component<Props> {
   handleScroll = throttle(this.updateIsScrolled, 50);
 
   handleEdit = () => {
-    this.props.history.push(documentEditUrl(this.props.document));
+    this.redirectTo = documentEditUrl(this.props.document);
   };
 
   handleSave = () => {
@@ -67,9 +80,11 @@ class Header extends React.Component<Props> {
     this.props.onSave({ done: true, publish: true });
   };
 
-  handleShareLink = async (ev: SyntheticEvent<*>) => {
+  handleShareLink = async (ev: SyntheticEvent<>) => {
     const { document } = this.props;
-    if (!document.shareUrl) await document.share();
+    if (!document.shareUrl) {
+      await document.share();
+    }
     this.showShareModal = true;
   };
 
@@ -80,21 +95,31 @@ class Header extends React.Component<Props> {
   handleClickTitle = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   };
 
   render() {
+    if (this.redirectTo) return <Redirect to={this.redirectTo} push />;
+
     const {
       document,
+      policies,
       isEditing,
       isDraft,
       isPublishing,
+      isRevision,
       isSaving,
       savingIsDisabled,
+      publishingIsDisabled,
+      ui,
       auth,
     } = this.props;
-    const canShareDocuments = auth.team && auth.team.sharing;
+
+    const can = policies.abilities(document.id);
+    const canShareDocuments = auth.team && auth.team.sharing && can.share;
+    const canToggleEmbeds = auth.team && auth.team.documentEmbeds;
+    const canEdit = can.update && !isEditing;
 
     return (
       <Actions
@@ -102,6 +127,7 @@ class Header extends React.Component<Props> {
         justify="space-between"
         readOnly={!isEditing}
         isCompact={this.isScrolled}
+        shrink={false}
       >
         <Modal
           isOpen={this.showShareModal}
@@ -113,76 +139,161 @@ class Header extends React.Component<Props> {
             onSubmit={this.handleCloseShareModal}
           />
         </Modal>
-        <Breadcrumb document={document} />
-        <Title isHidden={!this.isScrolled} onClick={this.handleClickTitle}>
-          {document.title}
-        </Title>
+        <BreadcrumbAndContents align="center" justify="flex-start">
+          <Breadcrumb document={document} />
+          {!isEditing && (
+            <React.Fragment>
+              <Slash />
+              <Tooltip
+                tooltip={ui.tocVisible ? "Hide contents" : "Show contents"}
+                shortcut={`ctrl+${meta}+h`}
+                delay={250}
+                placement="bottom"
+              >
+                <Button
+                  onClick={
+                    ui.tocVisible
+                      ? ui.hideTableOfContents
+                      : ui.showTableOfContents
+                  }
+                  icon={<TableOfContentsIcon />}
+                  iconColor="currentColor"
+                  borderOnHover
+                  neutral
+                  small
+                />
+              </Tooltip>
+            </React.Fragment>
+          )}
+        </BreadcrumbAndContents>
+        {this.isScrolled && (
+          <Title onClick={this.handleClickTitle}>
+            <Fade>
+              {document.title} {document.isArchived && <Badge>Archived</Badge>}
+            </Fade>
+          </Title>
+        )}
         <Wrapper align="center" justify="flex-end">
-          {!isDraft && !isEditing && <Collaborators document={document} />}
           {isSaving &&
             !isPublishing && (
               <Action>
                 <Status>Saving…</Status>
               </Action>
             )}
-          {isDraft && (
-            <Action>
-              <Link
-                onClick={this.handlePublish}
-                title="Publish document (Cmd+Enter)"
-                disabled={savingIsDisabled}
-                highlight
-              >
-                {isPublishing ? 'Publishing…' : 'Publish'}
-              </Link>
-            </Action>
-          )}
+          &nbsp;
+          <Collaborators
+            document={document}
+            currentUserId={auth.user ? auth.user.id : undefined}
+          />
           {!isDraft &&
             !isEditing &&
             canShareDocuments && (
               <Action>
-                <Link onClick={this.handleShareLink} title="Share document">
+                <Button
+                  onClick={this.handleShareLink}
+                  title="Share document"
+                  neutral
+                  small
+                >
                   Share
-                </Link>
+                </Button>
               </Action>
             )}
           {isEditing && (
             <React.Fragment>
               <Action>
-                <Link
-                  onClick={this.handleSave}
-                  title="Save changes (Cmd+Enter)"
-                  disabled={savingIsDisabled}
-                  isSaving={isSaving}
-                  highlight={!isDraft}
+                <Tooltip
+                  tooltip="Save"
+                  shortcut={`${meta}+enter`}
+                  delay={500}
+                  placement="bottom"
                 >
-                  {isDraft ? 'Save Draft' : 'Done'}
-                </Link>
+                  <Button
+                    onClick={this.handleSave}
+                    disabled={savingIsDisabled}
+                    isSaving={isSaving}
+                    neutral={isDraft}
+                    small
+                  >
+                    {isDraft ? "Save Draft" : "Done Editing"}
+                  </Button>
+                </Tooltip>
               </Action>
             </React.Fragment>
           )}
-          {!isEditing && (
-            <Action>
-              <Link onClick={this.handleEdit}>Edit</Link>
-            </Action>
-          )}
-          {!isEditing && (
-            <Action>
-              <DocumentMenu document={document} showPrint />
-            </Action>
-          )}
-          {!isEditing &&
-            !isDraft && (
-              <React.Fragment>
-                <Separator />
-                <Action>
-                  <NewChildDocumentMenu
-                    document={document}
-                    label={<NewDocumentIcon />}
-                  />
-                </Action>
-              </React.Fragment>
+          {can.update &&
+            isDraft &&
+            !isRevision && (
+              <Action>
+                <Tooltip
+                  tooltip="Publish"
+                  shortcut={`${meta}+shift+p`}
+                  delay={500}
+                  placement="bottom"
+                >
+                  <Button
+                    onClick={this.handlePublish}
+                    title="Publish document"
+                    disabled={publishingIsDisabled}
+                    small
+                  >
+                    {isPublishing ? "Publishing…" : "Publish"}
+                  </Button>
+                </Tooltip>
+              </Action>
             )}
+          {canEdit && (
+            <Action>
+              <Tooltip
+                tooltip="Edit document"
+                shortcut="e"
+                delay={500}
+                placement="bottom"
+              >
+                <Button
+                  icon={<EditIcon />}
+                  onClick={this.handleEdit}
+                  neutral
+                  small
+                >
+                  Edit
+                </Button>
+              </Tooltip>
+            </Action>
+          )}
+          {canEdit &&
+            can.createChildDocument && (
+              <Action>
+                <NewChildDocumentMenu
+                  document={document}
+                  label={
+                    <Tooltip
+                      tooltip="New document"
+                      shortcut="n"
+                      delay={500}
+                      placement="bottom"
+                    >
+                      <Button icon={<PlusIcon />} neutral>
+                        New doc
+                      </Button>
+                    </Tooltip>
+                  }
+                />
+              </Action>
+            )}
+          {!isEditing && (
+            <React.Fragment>
+              <Separator />
+              <Action>
+                <DocumentMenu
+                  document={document}
+                  isRevision={isRevision}
+                  showToggleEmbeds={canToggleEmbeds}
+                  showPrint
+                />
+              </Action>
+            </React.Fragment>
+          )}
         </Wrapper>
       </Actions>
     );
@@ -193,11 +304,21 @@ const Status = styled.div`
   color: ${props => props.theme.slate};
 `;
 
+const BreadcrumbAndContents = styled(Flex)`
+  display: none;
+
+  ${breakpoint("tablet")`	
+    display: flex;
+    width: 33.3%;
+  `};
+`;
+
 const Wrapper = styled(Flex)`
   width: 100%;
   align-self: flex-end;
+  height: 32px;
 
-  ${breakpoint('tablet')`	
+  ${breakpoint("tablet")`	
     width: 33.3%;
   `};
 `;
@@ -207,21 +328,24 @@ const Actions = styled(Flex)`
   top: 0;
   right: 0;
   left: 0;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom: 1px solid
-    ${props => (props.isCompact ? props.theme.smoke : 'transparent')};
+  z-index: 2;
+  background: ${props => transparentize(0.2, props.theme.background)};
+  box-shadow: 0 1px 0
+    ${props =>
+      props.isCompact
+        ? darken(0.05, props.theme.sidebarBackground)
+        : "transparent"};
   padding: 12px;
   transition: all 100ms ease-out;
   transform: translate3d(0, 0, 0);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 
   @media print {
     display: none;
   }
 
-  ${breakpoint('tablet')`
-    padding: ${props => (props.isCompact ? '12px' : `24px 24px 0`)};
+  ${breakpoint("tablet")`
+    padding: ${props => (props.isCompact ? "12px" : `24px 24px 0`)};
   `};
 `;
 
@@ -229,31 +353,18 @@ const Title = styled.div`
   font-size: 16px;
   font-weight: 600;
   text-align: center;
+  align-items: center;
   justify-content: center;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  transition: opacity 100ms ease-in-out;
-  opacity: ${props => (props.isHidden ? '0' : '1')};
-  cursor: ${props => (props.isHidden ? 'default' : 'pointer')};
   display: none;
   width: 0;
 
-  ${breakpoint('tablet')`	
-    display: block;
+  ${breakpoint("tablet")`	
+    display: flex;
     flex-grow: 1;
   `};
 `;
 
-const Link = styled.a`
-  display: flex;
-  align-items: center;
-  font-weight: ${props => (props.highlight ? 500 : 'inherit')};
-  color: ${props =>
-    props.highlight ? `${props.theme.primary} !important` : 'inherit'};
-  opacity: ${props => (props.disabled ? 0.5 : 1)};
-  pointer-events: ${props => (props.disabled ? 'none' : 'auto')};
-  cursor: ${props => (props.disabled ? 'default' : 'pointer')};
-`;
-
-export default inject('auth')(Header);
+export default inject("auth", "ui", "policies")(Header);

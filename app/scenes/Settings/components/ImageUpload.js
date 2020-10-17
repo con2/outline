@@ -1,27 +1,28 @@
 // @flow
-import * as React from 'react';
-import { observable } from 'mobx';
-import { observer } from 'mobx-react';
-import styled from 'styled-components';
-import Dropzone from 'react-dropzone';
-
-import LoadingIndicator from 'components/LoadingIndicator';
-import Flex from 'shared/components/Flex';
-import Modal from 'components/Modal';
-import Button from 'components/Button';
-import AvatarEditor from 'react-avatar-editor';
-import { uploadFile, dataUrlToBlob } from 'utils/uploadFile';
+import * as React from "react";
+import { observable } from "mobx";
+import { observer, inject } from "mobx-react";
+import styled from "styled-components";
+import Dropzone from "react-dropzone";
+import LoadingIndicator from "components/LoadingIndicator";
+import Flex from "shared/components/Flex";
+import Modal from "components/Modal";
+import Button from "components/Button";
+import AvatarEditor from "react-avatar-editor";
+import { uploadFile, dataUrlToBlob } from "utils/uploadFile";
+import UiStore from "stores/UiStore";
 
 type Props = {
   children?: React.Node,
-  onSuccess: string => *,
-  onError: string => *,
+  onSuccess: string => void | Promise<void>,
+  onError: string => void,
   submitText: string,
   borderRadius: number,
+  ui: UiStore,
 };
 
 @observer
-class DropToImport extends React.Component<Props> {
+class ImageUpload extends React.Component<Props> {
   @observable isUploading: boolean = false;
   @observable isCropping: boolean = false;
   @observable zoom: number = 1;
@@ -29,7 +30,7 @@ class DropToImport extends React.Component<Props> {
   avatarEditorRef: AvatarEditor;
 
   static defaultProps = {
-    submitText: 'Crop Picture',
+    submitText: "Crop Picture",
     borderRadius: 150,
   };
 
@@ -38,12 +39,23 @@ class DropToImport extends React.Component<Props> {
     this.file = files[0];
   };
 
-  handleCrop = async () => {
+  handleCrop = () => {
+    this.isUploading = true;
+
+    // allow the UI to update before converting the canvas to a Blob
+    // for large images this can cause the page rendering to hang.
+    setImmediate(this.uploadImage);
+  };
+
+  uploadImage = async () => {
     const canvas = this.avatarEditorRef.getImage();
     const imageBlob = dataUrlToBlob(canvas.toDataURL());
     try {
-      const asset = await uploadFile(imageBlob, { name: this.file.name });
-      this.props.onSuccess(asset.url);
+      const attachment = await uploadFile(imageBlob, {
+        name: this.file.name,
+        public: true,
+      });
+      this.props.onSuccess(attachment.url);
     } catch (err) {
       this.props.onError(err.message);
     } finally {
@@ -65,11 +77,12 @@ class DropToImport extends React.Component<Props> {
   };
 
   renderCropping() {
-    const { submitText } = this.props;
+    const { ui, submitText } = this.props;
 
     return (
       <Modal isOpen onRequestClose={this.handleClose} title="">
         <Flex auto column align="center" justify="center">
+          {this.isUploading && <LoadingIndicator />}
           <AvatarEditorContainer>
             <AvatarEditor
               ref={ref => (this.avatarEditorRef = ref)}
@@ -78,7 +91,9 @@ class DropToImport extends React.Component<Props> {
               height={250}
               border={25}
               borderRadius={this.props.borderRadius}
-              color={[255, 255, 255, 0.6]} // RGBA
+              color={
+                ui.theme === "light" ? [255, 255, 255, 0.6] : [0, 0, 0, 0.6]
+              } // RGBA
               scale={this.zoom}
               rotate={0}
             />
@@ -91,9 +106,8 @@ class DropToImport extends React.Component<Props> {
             defaultValue="1"
             onChange={this.handleZoom}
           />
-          {this.isUploading && <LoadingIndicator />}
           <CropButton onClick={this.handleCrop} disabled={this.isUploading}>
-            {submitText}
+            {this.isUploading ? "Uploading…" : submitText}
           </CropButton>
         </Flex>
       </Modal>
@@ -140,7 +154,7 @@ const RangeInput = styled.input`
     height: 16px;
     width: 16px;
     border-radius: 50%;
-    background: black;
+    background: ${props => props.theme.text};
     cursor: pointer;
   }
 
@@ -153,4 +167,4 @@ const CropButton = styled(Button)`
   width: 300px;
 `;
 
-export default DropToImport;
+export default inject("ui")(ImageUpload);

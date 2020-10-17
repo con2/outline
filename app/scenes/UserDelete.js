@@ -1,32 +1,29 @@
 // @flow
-import * as React from 'react';
-import { observable } from 'mobx';
-import { inject, observer } from 'mobx-react';
-import Button from 'components/Button';
-import Flex from 'shared/components/Flex';
-import HelpText from 'components/HelpText';
-import Modal from 'components/Modal';
-import AuthStore from 'stores/AuthStore';
+import * as React from "react";
+import { observable } from "mobx";
+import { inject, observer } from "mobx-react";
+import Button from "components/Button";
+import Flex from "shared/components/Flex";
+import HelpText from "components/HelpText";
+import Modal from "components/Modal";
+import AuthStore from "stores/AuthStore";
 
 type Props = {
   auth: AuthStore,
-  onRequestClose: () => *,
+  onRequestClose: () => void,
 };
 
 @observer
 class UserDelete extends React.Component<Props> {
   @observable isDeleting: boolean;
 
-  handleSubmit = async (ev: SyntheticEvent<*>) => {
+  handleSubmit = async (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     this.isDeleting = true;
 
     try {
-      const success = await this.props.auth.deleteUser();
-
-      if (success) {
-        this.props.auth.logout();
-      }
+      await this.props.auth.deleteUser();
+      this.props.auth.logout();
     } finally {
       this.isDeleting = false;
     }
@@ -50,7 +47,7 @@ class UserDelete extends React.Component<Props> {
               be automatically reprovisioned.
             </HelpText>
             <Button type="submit" danger>
-              {this.isDeleting ? 'Deleting…' : 'Delete My Account'}
+              {this.isDeleting ? "Deleting…" : "Delete My Account"}
             </Button>
           </form>
         </Flex>
@@ -59,4 +56,4 @@ class UserDelete extends React.Component<Props> {
   }
 }
 
-export default inject('auth')(UserDelete);
+export default inject("auth")(UserDelete);

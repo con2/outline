@@ -1,37 +1,23 @@
 // @flow
-export type User = {
-  avatarUrl: string,
-  id: string,
-  name: string,
-  email: string,
-  username: string,
-  isAdmin?: boolean,
-  isSuspended?: boolean,
-  createdAt: string,
-};
+import Document from "models/Document";
 
 export type Toast = {
-  message: string,
-  type: 'warning' | 'error' | 'info' | 'success',
-};
-
-export type Share = {
   id: string,
-  url: string,
-  documentTitle: string,
-  documentUrl: string,
-  createdBy: User,
   createdAt: string,
-  updatedAt: string,
+  message: string,
+  type: "warning" | "error" | "info" | "success",
+  timeout?: number,
+  action?: {
+    text: string,
+    onClick: () => void,
+  },
 };
 
-export type Team = {
-  id: string,
-  name: string,
-  avatarUrl: string,
-  slackConnected: boolean,
-  googleConnected: boolean,
-  sharing: boolean,
+export type FetchOptions = {
+  prefetch?: boolean,
+  revisionId?: string,
+  shareId?: string,
+  force?: boolean,
 };
 
 export type NavigationNode = {
@@ -39,24 +25,6 @@ export type NavigationNode = {
   title: string,
   url: string,
   children: NavigationNode[],
-};
-
-export type Document = {
-  collaborators: User[],
-  collection: Object,
-  createdAt: string,
-  createdBy: User,
-  html: string,
-  id: string,
-  starred: boolean,
-  views: number,
-  team: string,
-  text: string,
-  title: string,
-  updatedAt: string,
-  updatedBy: User,
-  url: string,
-  views: number,
 };
 
 // Pagination response in an API call
@@ -71,13 +39,7 @@ export type PaginationParams = {
   limit?: number,
   offset?: number,
   sort?: string,
-  direction?: 'ASC' | 'DESC',
-};
-
-export type ApiKey = {
-  id: string,
-  name: string,
-  secret: string,
+  direction?: "ASC" | "DESC",
 };
 
 export type SearchResult = {

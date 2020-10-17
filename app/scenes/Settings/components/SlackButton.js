@@ -1,9 +1,9 @@
 // @flow
-import * as React from 'react';
-import styled from 'styled-components';
-import { slackAuth } from 'shared/utils/routeHelpers';
-import SlackLogo from 'shared/components/SlackLogo';
-import Button from 'components/Button';
+import * as React from "react";
+import styled from "styled-components";
+import { slackAuth } from "shared/utils/routeHelpers";
+import SlackLogo from "shared/components/SlackLogo";
+import Button from "components/Button";
 
 type Props = {
   scopes?: string[],
@@ -17,7 +17,11 @@ function SlackButton({ state, scopes, redirectUri, label }: Props) {
     (window.location.href = slackAuth(state, scopes, redirectUri));
 
   return (
-    <Button onClick={handleClick} icon={<SpacedSlackLogo size={24} />} neutral>
+    <Button
+      onClick={handleClick}
+      icon={<SpacedSlackLogo size={24} fill="#000" />}
+      neutral
+    >
       {label ? (
         label
       ) : (

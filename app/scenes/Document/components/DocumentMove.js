@@ -1,53 +1,50 @@
 // @flow
-import * as React from 'react';
-import ReactDOM from 'react-dom';
-import { observable, computed } from 'mobx';
-import { observer, inject } from 'mobx-react';
-import { withRouter } from 'react-router-dom';
-import { Search } from 'js-search';
-import ArrowKeyNavigation from 'boundless-arrow-key-navigation';
-import _ from 'lodash';
-import styled from 'styled-components';
+import * as React from "react";
+import ReactDOM from "react-dom";
+import { observable, computed } from "mobx";
+import { observer, inject } from "mobx-react";
+import { Search } from "js-search";
+import { last } from "lodash";
+import ArrowKeyNavigation from "boundless-arrow-key-navigation";
+import styled from "styled-components";
 
-import Modal from 'components/Modal';
-import Input from 'components/Input';
-import Labeled from 'components/Labeled';
-import PathToDocument from 'components/PathToDocument';
-import Flex from 'shared/components/Flex';
+import Modal from "components/Modal";
+import Input from "components/Input";
+import Labeled from "components/Labeled";
+import PathToDocument from "components/PathToDocument";
+import Flex from "shared/components/Flex";
 
-import Document from 'models/Document';
-import DocumentsStore from 'stores/DocumentsStore';
-import CollectionsStore, { type DocumentPath } from 'stores/CollectionsStore';
+import Document from "models/Document";
+import DocumentsStore from "stores/DocumentsStore";
+import UiStore from "stores/UiStore";
+import CollectionsStore, { type DocumentPath } from "stores/CollectionsStore";
 
-type Props = {
-  match: Object,
-  history: Object,
+const MAX_RESULTS = 8;
+
+type Props = {|
   document: Document,
   documents: DocumentsStore,
   collections: CollectionsStore,
-};
+  ui: UiStore,
+  onRequestClose: () => void,
+|};
 
 @observer
 class DocumentMove extends React.Component<Props> {
-  firstDocument: *;
+  firstDocument: ?PathToDocument;
   @observable searchTerm: ?string;
   @observable isSaving: boolean;
 
   @computed
   get searchIndex() {
-    const { document, collections } = this.props;
+    const { collections } = this.props;
     const paths = collections.pathsToDocuments;
-    const index = new Search('id');
-    index.addIndex('title');
+    const index = new Search("id");
+    index.addIndex("title");
 
     // Build index
     const indexeableDocuments = [];
-    paths.forEach(path => {
-      // TMP: For now, exclude paths to other collections
-      if (_.first(path.path).id !== document.collection.id) return;
-
-      indexeableDocuments.push(path);
-    });
+    paths.forEach(path => indexeableDocuments.push(path));
     index.addDocuments(indexeableDocuments);
 
     return index;
@@ -60,38 +57,22 @@ class DocumentMove extends React.Component<Props> {
     let results = [];
     if (collections.isLoaded) {
       if (this.searchTerm) {
-        // Search by the keyword
         results = this.searchIndex.search(this.searchTerm);
       } else {
-        // Default results, root of the current collection
-        results = [];
-        document.collection.documents.forEach(doc => {
-          const path = collections.getPathForDocument(doc.id);
-          if (doc && path) {
-            results.push(path);
-          }
-        });
-      }
-    }
-
-    if (document && document.parentDocumentId) {
-      // Add root if document does have a parent document
-      const rootPath = collections.getPathForDocument(document.collection.id);
-      if (rootPath) {
-        results = [rootPath, ...results];
+        results = this.searchIndex._documents;
       }
     }
 
     // Exclude root from search results if document is already at the root
     if (!document.parentDocumentId) {
-      results = results.filter(result => result.id !== document.collection.id);
+      results = results.filter(result => result.id !== document.collectionId);
     }
 
     // Exclude document if on the path to result, or the same result
     results = results.filter(
       result =>
         !result.path.map(doc => doc.id).includes(document.id) &&
-        _.last(result.path.map(doc => doc.id)) !== document.parentDocumentId
+        last(result.path.map(doc => doc.id)) !== document.parentDocumentId
     );
 
     return results;
@@ -108,12 +89,13 @@ class DocumentMove extends React.Component<Props> {
     }
   };
 
-  handleClose = () => {
-    this.props.history.push(this.props.document.url);
+  handleSuccess = () => {
+    this.props.ui.showToast("Document moved");
+    this.props.onRequestClose();
   };
 
-  handleFilter = (e: SyntheticInputEvent<*>) => {
-    this.searchTerm = e.target.value;
+  handleFilter = (ev: SyntheticInputEvent<*>) => {
+    this.searchTerm = ev.target.value;
   };
 
   setFirstDocumentRef = ref => {
@@ -123,16 +105,22 @@ class DocumentMove extends React.Component<Props> {
   renderPathToCurrentDocument() {
     const { collections, document } = this.props;
     const result = collections.getPathForDocument(document.id);
+
     if (result) {
-      return <PathToDocument result={result} />;
+      return (
+        <PathToDocument
+          result={result}
+          collection={collections.get(result.collectionId)}
+        />
+      );
     }
   }
 
   render() {
-    const { document, collections } = this.props;
+    const { document, collections, onRequestClose } = this.props;
 
     return (
-      <Modal isOpen onRequestClose={this.handleClose} title="Move document">
+      <Modal isOpen onRequestClose={onRequestClose} title="Move document">
         {document &&
           collections.isLoaded && (
             <Flex column>
@@ -145,8 +133,8 @@ class DocumentMove extends React.Component<Props> {
               <Section column>
                 <Labeled label="Choose a new location">
                   <Input
-                    type="text"
-                    placeholder="Filter by document name…"
+                    type="search"
+                    placeholder="Search collections & documents…"
                     onKeyDown={this.handleKeyDown}
                     onChange={this.handleFilter}
                     required
@@ -158,17 +146,20 @@ class DocumentMove extends React.Component<Props> {
                     mode={ArrowKeyNavigation.mode.VERTICAL}
                     defaultActiveChildIndex={0}
                   >
-                    {this.results.map((result, index) => (
-                      <PathToDocument
-                        key={result.id}
-                        result={result}
-                        document={document}
-                        ref={ref =>
-                          index === 0 && this.setFirstDocumentRef(ref)
-                        }
-                        onSuccess={this.handleClose}
-                      />
-                    ))}
+                    {this.results
+                      .slice(0, MAX_RESULTS)
+                      .map((result, index) => (
+                        <PathToDocument
+                          key={result.id}
+                          result={result}
+                          document={document}
+                          collection={collections.get(result.collectionId)}
+                          ref={ref =>
+                            index === 0 && this.setFirstDocumentRef(ref)
+                          }
+                          onSuccess={this.handleSuccess}
+                        />
+                      ))}
                   </StyledArrowKeyNavigation>
                 </Flex>
               </Section>
@@ -189,4 +180,4 @@ const StyledArrowKeyNavigation = styled(ArrowKeyNavigation)`
   flex: 1;
 `;
 
-export default withRouter(inject('documents', 'collections')(DocumentMove));
+export default inject("documents", "collections", "ui")(DocumentMove);

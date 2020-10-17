@@ -1,86 +1,49 @@
 // @flow
-import * as React from 'react';
-import { observable, action } from 'mobx';
-import { observer } from 'mobx-react';
-import { withRouter, NavLink } from 'react-router-dom';
-import { CollapsedIcon } from 'outline-icons';
-import styled, { withTheme } from 'styled-components';
-import Flex from 'shared/components/Flex';
-
-const StyledGoTo = styled(CollapsedIcon)`
-  margin-bottom: -4px;
-  margin-left: 1px;
-  margin-right: -3px;
-  ${({ expanded }) => !expanded && 'transform: rotate(-90deg);'};
-`;
-
-const IconWrapper = styled.span`
-  margin-left: -4px;
-  margin-right: 4px;
-  height: 24px;
-`;
-
-const StyledNavLink = styled(NavLink)`
-  display: flex;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 4px 0;
-  margin-left: ${({ icon }) => (icon ? '-20px;' : '0')};
-  color: ${props => props.theme.slateDark};
-  font-size: 15px;
-  cursor: pointer;
-
-  &:hover {
-    color: ${props => props.theme.text};
-  }
-`;
-
-const StyledDiv = StyledNavLink.withComponent('div');
+import * as React from "react";
+import { observable, action } from "mobx";
+import { observer } from "mobx-react";
+import { withRouter, NavLink } from "react-router-dom";
+import { CollapsedIcon } from "outline-icons";
+import styled, { withTheme } from "styled-components";
+import Flex from "shared/components/Flex";
 
 type Props = {
   to?: string | Object,
-  onClick?: (SyntheticEvent<*>) => *,
+  href?: string | Object,
+  onClick?: (SyntheticEvent<>) => void,
   children?: React.Node,
   icon?: React.Node,
-  expand?: boolean,
-  expandedContent?: React.Node,
+  expanded?: boolean,
+  label?: React.Node,
   menu?: React.Node,
   menuOpen?: boolean,
-  hideExpandToggle?: boolean,
+  hideDisclosure?: boolean,
   iconColor?: string,
   active?: boolean,
   theme: Object,
   exact?: boolean,
+  depth?: number,
 };
 
 @observer
 class SidebarLink extends React.Component<Props> {
-  @observable expanded: boolean = false;
-  activeStyle: Object;
+  @observable expanded: ?boolean = this.props.expanded;
 
-  constructor(props) {
-    super(props);
-
-    this.activeStyle = {
-      color: props.theme.black,
-      fontWeight: 500,
-    };
-  }
-
-  componentDidMount() {
-    if (this.props.expand) this.handleExpand();
-  }
+  style = {
+    paddingLeft: `${(this.props.depth || 0) * 16 + 16}px`,
+  };
 
   componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.expand) this.handleExpand();
+    if (nextProps.expanded !== undefined) {
+      this.expanded = nextProps.expanded;
+    }
   }
 
   @action
-  handleClick = (event: SyntheticEvent<*>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  handleClick = (ev: SyntheticEvent<>) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+
     this.expanded = !this.expanded;
   };
 
@@ -95,47 +58,62 @@ class SidebarLink extends React.Component<Props> {
       children,
       onClick,
       to,
-      expandedContent,
-      expand,
+      label,
       active,
       menu,
       menuOpen,
-      hideExpandToggle,
+      hideDisclosure,
       exact,
+      href,
     } = this.props;
-    const Component = to ? StyledNavLink : StyledDiv;
-    const showExpandIcon =
-      expandedContent && !hideExpandToggle ? true : undefined;
+    const showDisclosure = !!children && !hideDisclosure;
+    const activeStyle = {
+      color: this.props.theme.text,
+      background: this.props.theme.sidebarItemBackground,
+      fontWeight: 600,
+      ...this.style,
+    };
 
     return (
-      <Wrapper menuOpen={menuOpen} column>
-        <Component
-          icon={showExpandIcon}
-          activeStyle={this.activeStyle}
-          style={active ? this.activeStyle : undefined}
+      <Wrapper column>
+        <StyledNavLink
+          activeStyle={activeStyle}
+          style={active ? activeStyle : this.style}
           onClick={onClick}
-          to={to}
           exact={exact !== false}
+          to={to}
+          as={to ? undefined : href ? "a" : "div"}
+          href={href}
         >
           {icon && <IconWrapper>{icon}</IconWrapper>}
-          {showExpandIcon && (
-            <StyledGoTo expanded={this.expanded} onClick={this.handleClick} />
-          )}
-          <Content onClick={this.handleExpand}>{children}</Content>
-        </Component>
-        {/* Collection */ expand && hideExpandToggle && expandedContent}
-        {/* Document */ this.expanded && !hideExpandToggle && expandedContent}
-        {menu && <Action>{menu}</Action>}
+          <Label onClick={this.handleExpand}>
+            {showDisclosure && (
+              <Disclosure expanded={this.expanded} onClick={this.handleClick} />
+            )}
+            {label}
+          </Label>
+          {menu && <Action menuOpen={menuOpen}>{menu}</Action>}
+        </StyledNavLink>
+        {this.expanded && children}
       </Wrapper>
     );
   }
 }
 
+// accounts for whitespace around icon
+const IconWrapper = styled.span`
+  margin-left: -4px;
+  margin-right: 4px;
+  height: 24px;
+`;
+
 const Action = styled.span`
+  display: ${props => (props.menuOpen ? "inline" : "none")};
   position: absolute;
-  right: 0;
-  top: 2px;
-  color: ${props => props.theme.slate};
+  top: 4px;
+  right: 4px;
+  color: ${props => props.theme.textTertiary};
+
   svg {
     opacity: 0.75;
   }
@@ -147,11 +125,25 @@ const Action = styled.span`
   }
 `;
 
-const Wrapper = styled(Flex)`
+const StyledNavLink = styled(NavLink)`
+  display: flex;
   position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 16px;
+  border-radius: 4px;
+  color: ${props => props.theme.sidebarText};
+  font-size: 15px;
+  cursor: pointer;
 
-  > ${Action} {
-    display: ${props => (props.menuOpen ? 'inline' : 'none')};
+  &:hover {
+    color: ${props => props.theme.text};
+  }
+
+  &:focus {
+    color: ${props => props.theme.text};
+    background: ${props => props.theme.black05};
+    outline: none;
   }
 
   &:hover {
@@ -161,9 +153,22 @@ const Wrapper = styled(Flex)`
   }
 `;
 
-const Content = styled.div`
+const Wrapper = styled(Flex)`
+  position: relative;
+`;
+
+const Label = styled.div`
+  position: relative;
   width: 100%;
-  max-height: 4em;
+  max-height: 4.8em;
+  line-height: 1.6;
+`;
+
+const Disclosure = styled(CollapsedIcon)`
+  position: absolute;
+  left: -24px;
+
+  ${({ expanded }) => !expanded && "transform: rotate(-90deg);"};
 `;
 
 export default withRouter(withTheme(SidebarLink));

@@ -1,22 +1,22 @@
 // @flow
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { observable } from 'mobx';
-import { CollectionIcon } from 'outline-icons';
-import styled from 'styled-components';
-import Collection from 'models/Collection';
-import Document from 'models/Document';
-import CollectionMenu from 'menus/CollectionMenu';
-import UiStore from 'stores/UiStore';
-import SidebarLink from './SidebarLink';
-import DocumentLink from './DocumentLink';
-import DropToImport from 'components/DropToImport';
-import Flex from 'shared/components/Flex';
+import * as React from "react";
+import { observer } from "mobx-react";
+import { observable } from "mobx";
+import Collection from "models/Collection";
+import Document from "models/Document";
+import CollectionMenu from "menus/CollectionMenu";
+import UiStore from "stores/UiStore";
+import DocumentsStore from "stores/DocumentsStore";
+import SidebarLink from "./SidebarLink";
+import DocumentLink from "./DocumentLink";
+import CollectionIcon from "components/CollectionIcon";
+import DropToImport from "components/DropToImport";
+import Flex from "shared/components/Flex";
 
 type Props = {
-  history: Object,
   collection: Collection,
   ui: UiStore,
+  documents: DocumentsStore,
   activeDocument: ?Document,
   prefetchDocument: (id: string) => Promise<void>,
 };
@@ -27,8 +27,8 @@ class CollectionLink extends React.Component<Props> {
 
   render() {
     const {
-      history,
       collection,
+      documents,
       activeDocument,
       prefetchDocument,
       ui,
@@ -38,58 +38,45 @@ class CollectionLink extends React.Component<Props> {
     return (
       <DropToImport
         key={collection.id}
-        history={history}
         collectionId={collection.id}
         activeClassName="activeDropZone"
       >
         <SidebarLink
           key={collection.id}
           to={collection.url}
-          icon={<CollectionIcon expanded={expanded} color={collection.color} />}
+          icon={<CollectionIcon collection={collection} expanded={expanded} />}
           iconColor={collection.color}
-          expand={expanded}
-          hideExpandToggle
+          expanded={expanded}
+          hideDisclosure
           menuOpen={this.menuOpen}
-          expandedContent={
-            <CollectionChildren column>
-              {collection.documents.map(document => (
-                <DocumentLink
-                  key={document.id}
-                  history={history}
-                  document={document}
-                  activeDocument={activeDocument}
-                  prefetchDocument={prefetchDocument}
-                  depth={0}
-                />
-              ))}
-            </CollectionChildren>
-          }
+          label={collection.name}
+          exact={false}
           menu={
             <CollectionMenu
-              history={history}
+              position="right"
               collection={collection}
               onOpen={() => (this.menuOpen = true)}
               onClose={() => (this.menuOpen = false)}
             />
           }
         >
-          <CollectionName justify="space-between">
-            {collection.name}
-          </CollectionName>
+          <Flex column>
+            {collection.documents.map(node => (
+              <DocumentLink
+                key={node.id}
+                node={node}
+                documents={documents}
+                collection={collection}
+                activeDocument={activeDocument}
+                prefetchDocument={prefetchDocument}
+                depth={1.5}
+              />
+            ))}
+          </Flex>
         </SidebarLink>
       </DropToImport>
     );
   }
 }
-
-const CollectionName = styled(Flex)`
-  padding: 0 0 4px;
-`;
-
-const CollectionChildren = styled(Flex)`
-  margin-top: -4px;
-  margin-left: 36px;
-  padding-bottom: 4px;
-`;
 
 export default CollectionLink;

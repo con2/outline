@@ -1,7 +1,6 @@
 /* eslint-disable */
 const path = require('path');
 const webpack = require('webpack');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 require('dotenv').config({ silent: true });
 
@@ -12,11 +11,13 @@ const definePlugin = new webpack.DefinePlugin({
   ),
   SLACK_APP_ID: JSON.stringify(process.env.SLACK_APP_ID),
   BASE_URL: JSON.stringify(process.env.URL),
-  BUGSNAG_KEY: JSON.stringify(process.env.BUGSNAG_KEY),
+  SENTRY_DSN: JSON.stringify(process.env.SENTRY_DSN),
   DEPLOYMENT: JSON.stringify(process.env.DEPLOYMENT || 'hosted'),
   'process.env': {
     URL: JSON.stringify(process.env.URL),
-    SLACK_KEY: JSON.stringify(process.env.SLACK_KEY)
+    SLACK_KEY: JSON.stringify(process.env.SLACK_KEY),
+    SUBDOMAINS_ENABLED: JSON.stringify(process.env.SUBDOMAINS_ENABLED === 'true'),
+    WEBSOCKETS_ENABLED: JSON.stringify(process.env.WEBSOCKETS_ENABLED === 'true')
   }
 });
 
@@ -31,6 +32,9 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
+        exclude: [
+          path.join(__dirname, 'node_modules')
+        ],
         include: [
           path.join(__dirname, 'app'),
           path.join(__dirname, 'shared'),
@@ -46,17 +50,8 @@ module.exports = {
         test: /\.woff$/,
         loader: 'url-loader?limit=1&mimetype=application/font-woff&name=public/fonts/[name].[ext]',
       },
-      {
-        test: /\.css$/,
-        use: ExtractTextPlugin.extract({
-          fallback: 'style-loader',
-          use: 'css-loader'
-        }),
-      },
       { test: /\.md/, loader: 'raw-loader' },
-    ],
-    // Silence warning https://github.com/localForage/localForage/issues/599
-    noParse: [new RegExp('node_modules/localforage/dist/localforage.js')],
+    ]
   },
   resolve: {
     modules: [

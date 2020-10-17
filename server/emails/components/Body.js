@@ -1,8 +1,8 @@
 // @flow
-import * as React from 'react';
-import { Table, TBody, TR, TD } from 'oy-vey';
+import * as React from "react";
+import { Table, TBody, TR, TD } from "oy-vey";
 
-import EmptySpace from './EmptySpace';
+import EmptySpace from "./EmptySpace";
 
 type Props = {
   children: React.Node,
@@ -14,7 +14,7 @@ export default ({ children }: Props) => {
       <TBody>
         <TR>
           <TD>
-            <EmptySpace height={20} />
+            <EmptySpace height={10} />
             {children}
             <EmptySpace height={40} />
           </TD>

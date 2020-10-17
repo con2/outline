@@ -1,6 +1,7 @@
 // @flow
-import Document from '../models/Document';
-import DocumentsStore from '../stores/DocumentsStore';
+import Document from "models/Document";
+import DocumentsStore from "stores/DocumentsStore";
+import parseTitle from "shared/utils/parseTitle";
 
 type Options = {
   file: File,
@@ -15,23 +16,40 @@ const importFile = async ({
   documentId,
   collectionId,
 }: Options): Promise<Document> => {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = async ev => {
-      const text = ev.target.result;
-      let data = {
-        parentDocument: undefined,
-        collection: { id: collectionId },
-        text,
-      };
+      let text = ev.target.result;
+      let title;
 
-      if (documentId) data.parentDocument = documentId;
+      // If the first line of the imported file looks like a markdown heading
+      // then we can use this as the document title
+      if (text.trim().startsWith("# ")) {
+        const result = parseTitle(text);
+        title = result.title;
+        text = text.replace(`# ${title}\n`, "");
 
-      let document = new Document(data);
-      document = await document.save({ publish: true });
-      documents.add(document);
-      resolve(document);
+        // otherwise, just use the filename without the extension as our best guess
+      } else {
+        title = file.name.replace(/\.[^/.]+$/, "");
+      }
+
+      let document = new Document(
+        {
+          parentDocumentId: documentId,
+          collectionId,
+          text,
+          title,
+        },
+        documents
+      );
+      try {
+        document = await document.save({ publish: true });
+        resolve(document);
+      } catch (err) {
+        reject(err);
+      }
     };
     reader.readAsText(file);
   });

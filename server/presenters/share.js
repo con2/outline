@@ -1,17 +1,15 @@
 // @flow
-import { Share } from '../models';
-import { presentUser } from '.';
+import { Share } from "../models";
+import { presentUser } from ".";
 
-function present(ctx: Object, share: Share) {
+export default function present(share: Share) {
   return {
     id: share.id,
     documentTitle: share.document.title,
-    documentUrl: share.document.getUrl(),
+    documentUrl: share.document.url,
     url: `${process.env.URL}/share/${share.id}`,
-    createdBy: presentUser(ctx, share.user),
+    createdBy: presentUser(share.user),
     createdAt: share.createdAt,
     updatedAt: share.updatedAt,
   };
 }
-
-export default present;

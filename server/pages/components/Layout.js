@@ -1,28 +1,28 @@
 // @flow
-import * as React from 'react';
-import { Helmet } from 'react-helmet';
-import styled from 'styled-components';
-import breakpoint from 'styled-components-breakpoint';
-import { TopNavigation, BottomNavigation } from './Navigation';
-import Analytics from '../../../shared/components/Analytics';
-import globalStyles from '../../../shared/styles/globals';
-import prefetchTags from '../../utils/prefetchTags';
+import * as React from "react";
+import { Helmet } from "react-helmet";
+import styled from "styled-components";
+import breakpoint from "styled-components-breakpoint";
+import Analytics from "./Analytics";
+import GlobalStyles from "../../../shared/styles/globals";
+import prefetchTags from "../../utils/prefetchTags";
 
-export const title = 'Outline';
+export const title = "Outline";
 export const description =
-  'Your team’s knowledge base - Team wiki, documentation, playbooks, onboarding & more…';
+  "Your team’s knowledge base - Team wiki, documentation, playbooks, onboarding & more…";
 export const screenshotUrl = `${process.env.URL}/screenshot.png`;
 
 type Props = {
   children?: React.Node,
+  sessions: Object,
+  loggedIn: boolean,
 };
 
-function Layout({ children }: Props) {
-  globalStyles();
-
+function Layout({ children, loggedIn, sessions }: Props) {
   return (
     <html lang="en">
       <head>
+        <GlobalStyles />
         <Helmet>
           <title>{title}</title>
           <meta charset="utf-8" />
@@ -62,14 +62,10 @@ function Layout({ children }: Props) {
         </Helmet>
         <Analytics />
 
-        {'{{HEAD}}'}
-        {'{{CSS}}'}
+        {"{{HEAD}}"}
+        {"{{CSS}}"}
       </head>
-      <Body>
-        <TopNavigation />
-        {children}
-        <BottomNavigation />
-      </Body>
+      <Body>{children}</Body>
     </html>
   );
 }
@@ -77,7 +73,7 @@ function Layout({ children }: Props) {
 const Body = styled.body`
   padding: 0 30px;
 
-  ${breakpoint('tablet')`
+  ${breakpoint("desktop")`
     padding: 0;
   `};
 `;

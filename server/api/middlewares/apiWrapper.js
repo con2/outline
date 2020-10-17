@@ -1,5 +1,6 @@
 // @flow
-import { type Context } from 'koa';
+import stream from "stream";
+import { type Context } from "koa";
 
 export default function apiWrapper() {
   return async function apiWrapperMiddleware(
@@ -10,7 +11,10 @@ export default function apiWrapper() {
 
     const ok = ctx.status < 400;
 
-    if (typeof ctx.body !== 'string') {
+    if (
+      typeof ctx.body !== "string" &&
+      !(ctx.body instanceof stream.Readable)
+    ) {
       // $FlowFixMe
       ctx.body = {
         ...ctx.body,

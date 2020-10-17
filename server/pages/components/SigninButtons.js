@@ -1,17 +1,20 @@
 // @flow
-import * as React from 'react';
-import styled from 'styled-components';
-import { signin } from '../../../shared/utils/routeHelpers';
-import Flex from '../../../shared/components/Flex';
-import GoogleLogo from '../../../shared/components/GoogleLogo';
-import SlackLogo from '../../../shared/components/SlackLogo';
-import breakpoint from 'styled-components-breakpoint';
+import * as React from "react";
+import styled from "styled-components";
+import Button from "./Button";
+import { signin } from "../../../shared/utils/routeHelpers";
+import Flex from "../../../shared/components/Flex";
+import Notice from "../../../shared/components/Notice";
+import GoogleLogo from "../../../shared/components/GoogleLogo";
+import SlackLogo from "../../../shared/components/SlackLogo";
+import breakpoint from "styled-components-breakpoint";
 
 type Props = {
-  lastSignedIn: string,
+  lastSignedIn?: string,
   googleSigninEnabled: boolean,
   slackSigninEnabled: boolean,
   localSigninEnabled: boolean,
+  guestSigninEnabled?: boolean,
 };
 
 const SigninButtons = ({
@@ -19,40 +22,49 @@ const SigninButtons = ({
   slackSigninEnabled,
   googleSigninEnabled,
   localSigninEnabled,
+  guestSigninEnabled,
 }: Props) => {
   return (
     <Wrapper>
+      {!slackSigninEnabled &&
+        !googleSigninEnabled &&
+        !localSigninEnabled && (
+          <Notice>
+            Neither Slack or Google sign in is enabled. You must configure at
+            least one authentication method to sign in to Outline.
+          </Notice>
+        )}
       {slackSigninEnabled && (
         <Column column>
-          <Button href={signin('slack')}>
+          <Button href={signin("slack")}>
             <SlackLogo />
             <Spacer>Sign In with Slack</Spacer>
           </Button>
           <LastLogin>
-            {lastSignedIn === 'slack' && 'You signed in with Slack previously'}
+            {lastSignedIn === "slack" && "You signed in with Slack previously"}
           </LastLogin>
         </Column>
       )}
       {googleSigninEnabled && (
         <Column column>
-          <Button href={signin('google')}>
+          <Button href={signin("google")}>
             <GoogleLogo />
             <Spacer>Sign In with Google</Spacer>
           </Button>
           <LastLogin>
-            {lastSignedIn === 'google' &&
-              'You signed in with Google previously'}
+            {lastSignedIn === "google" &&
+              "You signed in with Google previously"}
           </LastLogin>
         </Column>
       )}
       {localSigninEnabled && (
         <Column column>
-          <Button href={signin('local')}>
+          <Button href={signin("local")}>
             <Spacer>Sign In with local authentication</Spacer>
           </Button>
           <LastLogin>
-            {lastSignedIn === 'local' &&
-              'You signed in with local authentication previously'}
+            {lastSignedIn === "local" &&
+              "You signed in with local authentication previously"}
           </LastLogin>
         </Column>
       )}
@@ -63,34 +75,27 @@ const SigninButtons = ({
 const Column = styled(Flex)`
   text-align: center;
 
-  &:first-child {
-    margin-right: 8px;
-  }
+  ${breakpoint("tablet")`
+    &:first-child {
+      margin-right: 8px;
+    }
+  `};
 `;
 
 const Wrapper = styled(Flex)`
   display: block;
   justify-content: center;
+  margin-top: 16px;
 
-  ${breakpoint('tablet')`
+  ${breakpoint("tablet")`
     display: flex;
     justify-content: flex-start;
-    `};
+    margin-top: 0;
+  `};
 `;
 
 const Spacer = styled.span`
   padding-left: 10px;
-`;
-
-const Button = styled.a`
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 20px;
-  color: ${props => props.theme.white};
-  background: ${props => props.theme.black};
-  border-radius: 4px;
-  font-weight: 600;
-  height: 56px;
 `;
 
 const LastLogin = styled.p`

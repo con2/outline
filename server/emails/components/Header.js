@@ -1,7 +1,7 @@
 // @flow
-import * as React from 'react';
-import { Table, TBody, TR, TD } from 'oy-vey';
-import EmptySpace from './EmptySpace';
+import * as React from "react";
+import { Table, TBody, TR, TD } from "oy-vey";
+import EmptySpace from "./EmptySpace";
 
 export default () => {
   return (
@@ -13,8 +13,8 @@ export default () => {
             <img
               alt="Outline"
               src={`${process.env.URL}/email/header-logo.png`}
-              height="55"
-              width="32"
+              height="48"
+              width="48"
             />
           </TD>
         </TR>

@@ -1,11 +1,10 @@
 // @flow
-import * as React from 'react';
-import { inject, observer } from 'mobx-react';
-import { MoreIcon } from 'outline-icons';
+import * as React from "react";
+import { inject, observer } from "mobx-react";
 
-import UsersStore from 'stores/UsersStore';
-import { DropdownMenu, DropdownMenuItem } from 'components/DropdownMenu';
-import type { User } from 'types';
+import { DropdownMenu, DropdownMenuItem } from "components/DropdownMenu";
+import UsersStore from "stores/UsersStore";
+import User from "models/User";
 
 type Props = {
   user: User,
@@ -14,7 +13,7 @@ type Props = {
 
 @observer
 class UserMenu extends React.Component<Props> {
-  handlePromote = (ev: SyntheticEvent<*>) => {
+  handlePromote = (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     const { user, users } = this.props;
     if (
@@ -29,7 +28,7 @@ class UserMenu extends React.Component<Props> {
     users.promote(user);
   };
 
-  handleDemote = (ev: SyntheticEvent<*>) => {
+  handleDemote = (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     const { user, users } = this.props;
     if (!window.confirm(`Are you want to make ${user.name} a member?`)) {
@@ -38,12 +37,12 @@ class UserMenu extends React.Component<Props> {
     users.demote(user);
   };
 
-  handleSuspend = (ev: SyntheticEvent<*>) => {
+  handleSuspend = (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     const { user, users } = this.props;
     if (
       !window.confirm(
-        "Are you want to suspend this account? Suspended users won't be able to access Outline."
+        "Are you want to suspend this account? Suspended users will be prevented from logging in."
       )
     ) {
       return;
@@ -51,7 +50,13 @@ class UserMenu extends React.Component<Props> {
     users.suspend(user);
   };
 
-  handleActivate = (ev: SyntheticEvent<*>) => {
+  handleRevoke = (ev: SyntheticEvent<>) => {
+    ev.preventDefault();
+    const { user, users } = this.props;
+    users.delete(user, { confirmation: true });
+  };
+
+  handleActivate = (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     const { user, users } = this.props;
     users.activate(user);
@@ -61,29 +66,36 @@ class UserMenu extends React.Component<Props> {
     const { user } = this.props;
 
     return (
-      <DropdownMenu label={<MoreIcon />}>
-        {!user.isSuspended &&
-          (user.isAdmin ? (
-            <DropdownMenuItem onClick={this.handleDemote}>
-              Make {user.name} a member…
-            </DropdownMenuItem>
-          ) : (
+      <DropdownMenu>
+        {user.isAdmin && (
+          <DropdownMenuItem onClick={this.handleDemote}>
+            Make {user.name} a member…
+          </DropdownMenuItem>
+        )}
+        {!user.isAdmin &&
+          !user.isSuspended && (
             <DropdownMenuItem onClick={this.handlePromote}>
               Make {user.name} an admin…
             </DropdownMenuItem>
-          ))}
-        {user.isSuspended ? (
-          <DropdownMenuItem onClick={this.handleActivate}>
-            Activate account
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onClick={this.handleSuspend}>
-            Suspend account…
+          )}
+        {!user.lastActiveAt && (
+          <DropdownMenuItem onClick={this.handleRevoke}>
+            Revoke invite…
           </DropdownMenuItem>
         )}
+        {user.lastActiveAt &&
+          (user.isSuspended ? (
+            <DropdownMenuItem onClick={this.handleActivate}>
+              Activate account
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={this.handleSuspend}>
+              Suspend account…
+            </DropdownMenuItem>
+          ))}
       </DropdownMenu>
     );
   }
 }
 
-export default inject('users')(UserMenu);
+export default inject("users")(UserMenu);

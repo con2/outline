@@ -1,21 +1,26 @@
 // @flow
-import * as React from 'react';
-import { observer, inject } from 'mobx-react';
-import type { Location } from 'react-router-dom';
-import Flex from 'shared/components/Flex';
-import { PlusIcon } from 'outline-icons';
+import * as React from "react";
+import { observer, inject } from "mobx-react";
+import { withRouter, type RouterHistory } from "react-router-dom";
+import keydown from "react-keydown";
+import Flex from "shared/components/Flex";
+import { PlusIcon } from "outline-icons";
+import { newDocumentUrl } from "utils/routeHelpers";
 
-import Header from './Header';
-import SidebarLink from './SidebarLink';
-import CollectionLink from './CollectionLink';
+import Header from "./Header";
+import SidebarLink from "./SidebarLink";
+import CollectionLink from "./CollectionLink";
+import CollectionsLoading from "./CollectionsLoading";
+import Fade from "components/Fade";
 
-import CollectionsStore from 'stores/CollectionsStore';
-import UiStore from 'stores/UiStore';
-import DocumentsStore from 'stores/DocumentsStore';
+import CollectionsStore from "stores/CollectionsStore";
+import PoliciesStore from "stores/PoliciesStore";
+import UiStore from "stores/UiStore";
+import DocumentsStore from "stores/DocumentsStore";
 
 type Props = {
-  history: Object,
-  location: Location,
+  history: RouterHistory,
+  policies: PoliciesStore,
   collections: CollectionsStore,
   documents: DocumentsStore,
   onCreateCollection: () => void,
@@ -24,35 +29,71 @@ type Props = {
 
 @observer
 class Collections extends React.Component<Props> {
-  render() {
-    const { history, location, collections, ui, documents } = this.props;
+  isPreloaded: boolean = !!this.props.collections.orderedData.length;
 
-    return (
-      <Flex column>
-        <Header>Collections</Header>
+  componentDidMount() {
+    const { collections } = this.props;
+
+    if (!collections.isFetching && !collections.isLoaded) {
+      collections.fetchPage({ limit: 100 });
+    }
+  }
+
+  @keydown("n")
+  goToNewDocument() {
+    if (this.props.ui.editMode) return;
+
+    const { activeCollectionId } = this.props.ui;
+    if (!activeCollectionId) return;
+
+    const can = this.props.policies.abilities(activeCollectionId);
+    if (!can.update) return;
+
+    this.props.history.push(newDocumentUrl(activeCollectionId));
+  }
+
+  render() {
+    const { collections, ui, documents } = this.props;
+
+    const content = (
+      <React.Fragment>
         {collections.orderedData.map(collection => (
           <CollectionLink
             key={collection.id}
-            history={history}
-            location={location}
+            documents={documents}
             collection={collection}
             activeDocument={documents.active}
             prefetchDocument={documents.prefetchDocument}
             ui={ui}
           />
         ))}
+        <SidebarLink
+          to="/collections"
+          onClick={this.props.onCreateCollection}
+          icon={<PlusIcon color="currentColor" />}
+          label="New collection…"
+          exact
+        />
+      </React.Fragment>
+    );
 
-        {collections.isLoaded && (
-          <SidebarLink
-            onClick={this.props.onCreateCollection}
-            icon={<PlusIcon />}
-          >
-            New collection…
-          </SidebarLink>
+    return (
+      <Flex column>
+        <Header>Collections</Header>
+        {collections.isLoaded ? (
+          this.isPreloaded ? (
+            content
+          ) : (
+            <Fade>{content}</Fade>
+          )
+        ) : (
+          <CollectionsLoading />
         )}
       </Flex>
     );
   }
 }
 
-export default inject('collections', 'ui', 'documents')(Collections);
+export default inject("collections", "ui", "documents", "policies")(
+  withRouter(Collections)
+);

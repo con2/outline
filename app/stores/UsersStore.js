@@ -1,63 +1,158 @@
 // @flow
-import { observable, action, runInAction } from 'mobx';
-import invariant from 'invariant';
-import { client } from 'utils/ApiClient';
-import type { User, PaginationParams } from 'types';
+import { filter, orderBy } from "lodash";
+import { computed, action, runInAction } from "mobx";
+import invariant from "invariant";
+import { client } from "utils/ApiClient";
+import BaseStore from "./BaseStore";
+import RootStore from "./RootStore";
+import User from "models/User";
 
-class UsersStore {
-  @observable data: User[] = [];
-  @observable isSaving: boolean = false;
+export default class UsersStore extends BaseStore<User> {
+  constructor(rootStore: RootStore) {
+    super(rootStore, User);
+  }
+
+  @computed
+  get active(): User[] {
+    return filter(
+      this.orderedData,
+      user => !user.isSuspended && user.lastActiveAt
+    );
+  }
+
+  @computed
+  get suspended(): User[] {
+    return filter(this.orderedData, user => user.isSuspended);
+  }
+
+  @computed
+  get activeOrInvited(): User[] {
+    return filter(this.orderedData, user => !user.isSuspended);
+  }
+
+  @computed
+  get invited(): User[] {
+    return filter(this.orderedData, user => !user.lastActiveAt);
+  }
+
+  @computed
+  get admins(): User[] {
+    return filter(this.orderedData, user => user.isAdmin);
+  }
+
+  @computed
+  get all(): User[] {
+    return filter(this.orderedData, user => user.lastActiveAt);
+  }
+
+  @computed
+  get orderedData(): User[] {
+    return orderBy(Array.from(this.data.values()), "name", "asc");
+  }
 
   @action
-  fetchPage = async (options: ?PaginationParams): Promise<*> => {
-    try {
-      const res = await client.post('/team.users', options);
-      invariant(res && res.data, 'Data should be available');
-      const { data } = res;
-
-      runInAction('fetchUsers', () => {
-        this.data = data.reverse();
-      });
-    } catch (e) {
-      console.error('Something went wrong');
-    }
+  promote = (user: User) => {
+    return this.actionOnUser("promote", user);
   };
 
   @action
-  promote = async (user: User) => {
-    return this.actionOnUser('promote', user);
+  demote = (user: User) => {
+    return this.actionOnUser("demote", user);
   };
 
   @action
-  demote = async (user: User) => {
-    return this.actionOnUser('demote', user);
+  suspend = (user: User) => {
+    return this.actionOnUser("suspend", user);
   };
 
   @action
-  suspend = async (user: User) => {
-    return this.actionOnUser('suspend', user);
+  activate = (user: User) => {
+    return this.actionOnUser("activate", user);
   };
 
   @action
-  activate = async (user: User) => {
-    return this.actionOnUser('activate', user);
+  invite = async (invites: { email: string, name: string }[]) => {
+    const res = await client.post(`/users.invite`, { invites });
+    invariant(res && res.data, "Data should be available");
+    runInAction(`invite`, () => {
+      res.data.users.forEach(this.add);
+    });
+    return res.data;
+  };
+
+  notInCollection = (collectionId: string, query: string = "") => {
+    const memberships = filter(
+      this.rootStore.memberships.orderedData,
+      member => member.collectionId === collectionId
+    );
+    const userIds = memberships.map(member => member.userId);
+    const users = filter(
+      this.activeOrInvited,
+      user => !userIds.includes(user.id)
+    );
+
+    if (!query) return users;
+    return queriedUsers(users, query);
+  };
+
+  inCollection = (collectionId: string, query: string) => {
+    const memberships = filter(
+      this.rootStore.memberships.orderedData,
+      member => member.collectionId === collectionId
+    );
+    const userIds = memberships.map(member => member.userId);
+    const users = filter(this.activeOrInvited, user =>
+      userIds.includes(user.id)
+    );
+
+    if (!query) return users;
+    return queriedUsers(users, query);
+  };
+
+  notInGroup = (groupId: string, query: string = "") => {
+    const memberships = filter(
+      this.rootStore.groupMemberships.orderedData,
+      member => member.groupId === groupId
+    );
+    const userIds = memberships.map(member => member.userId);
+    const users = filter(
+      this.activeOrInvited,
+      user => !userIds.includes(user.id)
+    );
+
+    if (!query) return users;
+    return queriedUsers(users, query);
+  };
+
+  inGroup = (groupId: string, query: string) => {
+    const groupMemberships = filter(
+      this.rootStore.groupMemberships.orderedData,
+      member => member.groupId === groupId
+    );
+    const userIds = groupMemberships.map(member => member.userId);
+    const users = filter(this.activeOrInvited, user =>
+      userIds.includes(user.id)
+    );
+
+    if (!query) return users;
+    return queriedUsers(users, query);
   };
 
   actionOnUser = async (action: string, user: User) => {
-    try {
-      const res = await client.post(`/user.${action}`, {
-        id: user.id,
-      });
-      invariant(res && res.data, 'Data should be available');
-      const { data } = res;
+    const res = await client.post(`/users.${action}`, {
+      id: user.id,
+    });
+    invariant(res && res.data, "Data should be available");
 
-      runInAction(`UsersStore#${action}`, () => {
-        this.data = this.data.map(user => (user.id === data.id ? data : user));
-      });
-    } catch (e) {
-      console.error('Something went wrong');
-    }
+    runInAction(`UsersStore#${action}`, () => {
+      this.addPolicies(res.policies);
+      this.add(res.data);
+    });
   };
 }
 
-export default UsersStore;
+function queriedUsers(users, query) {
+  return filter(users, user =>
+    user.name.toLowerCase().includes(query.toLowerCase())
+  );
+}

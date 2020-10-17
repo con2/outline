@@ -1,16 +1,16 @@
 // @flow
-import * as React from 'react';
-import { observable } from 'mobx';
-import { observer, inject } from 'mobx-react';
-import ApiKeysStore from 'stores/ApiKeysStore';
+import * as React from "react";
+import { observable } from "mobx";
+import { observer, inject } from "mobx-react";
+import ApiKeysStore from "stores/ApiKeysStore";
 
-import Button from 'components/Button';
-import Input from 'components/Input';
-import CenteredContent from 'components/CenteredContent';
-import PageTitle from 'components/PageTitle';
-import HelpText from 'components/HelpText';
-import List from 'components/List';
-import TokenListItem from './components/TokenListItem';
+import Button from "components/Button";
+import Input from "components/Input";
+import CenteredContent from "components/CenteredContent";
+import PageTitle from "components/PageTitle";
+import HelpText from "components/HelpText";
+import List from "components/List";
+import TokenListItem from "./components/TokenListItem";
 
 type Props = {
   apiKeys: ApiKeysStore,
@@ -18,7 +18,7 @@ type Props = {
 
 @observer
 class Tokens extends React.Component<Props> {
-  @observable name: string = '';
+  @observable name: string = "";
 
   componentDidMount() {
     this.props.apiKeys.fetchPage({ limit: 100 });
@@ -28,15 +28,15 @@ class Tokens extends React.Component<Props> {
     this.name = ev.target.value;
   };
 
-  handleSubmit = async (ev: SyntheticEvent<*>) => {
+  handleSubmit = async (ev: SyntheticEvent<>) => {
     ev.preventDefault();
-    await this.props.apiKeys.createApiKey(this.name);
-    this.name = '';
+    await this.props.apiKeys.create({ name: this.name });
+    this.name = "";
   };
 
   render() {
     const { apiKeys } = this.props;
-    const hasApiKeys = apiKeys.data.length > 0;
+    const hasApiKeys = apiKeys.orderedData.length > 0;
 
     return (
       <CenteredContent>
@@ -44,18 +44,18 @@ class Tokens extends React.Component<Props> {
         <h1>API Tokens</h1>
 
         <HelpText>
-          You can create an unlimited amount of personal API tokens to hack on
-          Outline. For more details about the API take a look at the{' '}
+          You can create an unlimited amount of personal tokens to authenticate
+          with the API. For more details about the API take a look at the{" "}
           <a href="/developers">developer documentation</a>.
         </HelpText>
 
         {hasApiKeys && (
           <List>
-            {apiKeys.data.map(token => (
+            {apiKeys.orderedData.map(token => (
               <TokenListItem
                 key={token.id}
                 token={token}
-                onDelete={apiKeys.deleteApiKey}
+                onDelete={token.delete}
               />
             ))}
           </List>
@@ -79,4 +79,4 @@ class Tokens extends React.Component<Props> {
   }
 }
 
-export default inject('apiKeys')(Tokens);
+export default inject("apiKeys")(Tokens);

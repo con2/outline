@@ -1,18 +1,18 @@
 // @flow
-import * as React from 'react';
-import { observable } from 'mobx';
-import { observer, inject } from 'mobx-react';
-import styled from 'styled-components';
+import * as React from "react";
+import { observable } from "mobx";
+import { observer, inject } from "mobx-react";
+import styled from "styled-components";
 
-import AuthStore from 'stores/AuthStore';
-import UiStore from 'stores/UiStore';
-import ImageUpload from './components/ImageUpload';
-import Input, { LabelText } from 'components/Input';
-import Button from 'components/Button';
-import CenteredContent from 'components/CenteredContent';
-import PageTitle from 'components/PageTitle';
-import UserDelete from 'scenes/UserDelete';
-import Flex from 'shared/components/Flex';
+import AuthStore from "stores/AuthStore";
+import UiStore from "stores/UiStore";
+import ImageUpload from "./components/ImageUpload";
+import Input, { LabelText } from "components/Input";
+import Button from "components/Button";
+import CenteredContent from "components/CenteredContent";
+import PageTitle from "components/PageTitle";
+import UserDelete from "scenes/UserDelete";
+import Flex from "shared/components/Flex";
 
 type Props = {
   auth: AuthStore,
@@ -38,26 +38,31 @@ class Profile extends React.Component<Props> {
     clearTimeout(this.timeout);
   }
 
-  handleSubmit = async (ev: SyntheticEvent<*>) => {
+  handleSubmit = async (ev: SyntheticEvent<>) => {
     ev.preventDefault();
 
     await this.props.auth.updateUser({
       name: this.name,
       avatarUrl: this.avatarUrl,
     });
-    this.props.ui.showToast('Profile saved', 'success');
+    this.props.ui.showToast("Profile saved");
   };
 
   handleNameChange = (ev: SyntheticInputEvent<*>) => {
     this.name = ev.target.value;
   };
 
-  handleAvatarUpload = (avatarUrl: string) => {
+  handleAvatarUpload = async (avatarUrl: string) => {
     this.avatarUrl = avatarUrl;
+
+    await this.props.auth.updateUser({
+      avatarUrl: this.avatarUrl,
+    });
+    this.props.ui.showToast("Profile picture updated");
   };
 
   handleAvatarError = (error: ?string) => {
-    this.props.ui.showToast(error || 'Unable to upload new avatar');
+    this.props.ui.showToast(error || "Unable to upload new avatar");
   };
 
   toggleDeleteAccount = () => {
@@ -78,7 +83,7 @@ class Profile extends React.Component<Props> {
         <PageTitle title="Profile" />
         <h1>Profile</h1>
         <ProfilePicture column>
-          <LabelText>Picture</LabelText>
+          <LabelText>Photo</LabelText>
           <AvatarContainer>
             <ImageUpload
               onSuccess={this.handleAvatarUpload}
@@ -93,14 +98,15 @@ class Profile extends React.Component<Props> {
         </ProfilePicture>
         <form onSubmit={this.handleSubmit} ref={ref => (this.form = ref)}>
           <Input
-            label="Name"
+            label="Full name"
+            autoComplete="name"
             value={this.name}
             onChange={this.handleNameChange}
             required
             short
           />
           <Button type="submit" disabled={isSaving || !this.isValid}>
-            {isSaving ? 'Saving…' : 'Save'}
+            {isSaving ? "Saving…" : "Save"}
           </Button>
         </form>
 
@@ -108,7 +114,7 @@ class Profile extends React.Component<Props> {
           <LabelText>Delete Account</LabelText>
           <p>
             You may delete your account at any time, note that this is
-            unrecoverable.{' '}
+            unrecoverable.{" "}
             <a onClick={this.toggleDeleteAccount}>Delete account</a>.
           </p>
         </DangerZone>
@@ -121,6 +127,8 @@ class Profile extends React.Component<Props> {
 }
 
 const DangerZone = styled.div`
+  background: ${props => props.theme.background};
+  transition: ${props => props.theme.backgroundTransition};
   position: absolute;
   bottom: 16px;
 `;
@@ -132,7 +140,7 @@ const ProfilePicture = styled(Flex)`
 const avatarStyles = `
   width: 80px;
   height: 80px;
-  border-radius: 50%;
+  border-radius: 8px;
 `;
 
 const AvatarContainer = styled(Flex)`
@@ -162,4 +170,4 @@ const Avatar = styled.img`
   ${avatarStyles};
 `;
 
-export default inject('auth', 'ui')(Profile);
+export default inject("auth", "ui")(Profile);

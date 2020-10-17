@@ -1,92 +1,98 @@
 /* eslint-disable flowtype/require-valid-file-annotation */
-import { flushdb, seed } from '../test/support';
-import { Collection, Document } from '../models';
-import uuid from 'uuid';
+import { flushdb, seed } from "../test/support";
+import { Collection, Document } from "../models";
+import {
+  buildUser,
+  buildGroup,
+  buildCollection,
+  buildTeam,
+} from "../test/factories";
+import uuid from "uuid";
 
 beforeEach(flushdb);
 beforeEach(jest.resetAllMocks);
 
-describe('#getUrl', () => {
-  test('should return correct url for the collection', () => {
-    const collection = new Collection({ id: '1234' });
-    expect(collection.getUrl()).toBe('/collections/1234');
+describe("#url", () => {
+  test("should return correct url for the collection", () => {
+    const collection = new Collection({ id: "1234" });
+    expect(collection.url).toBe("/collections/1234");
   });
 });
 
-describe('#addDocumentToStructure', async () => {
-  test('should add as last element without index', async () => {
+describe("#addDocumentToStructure", async () => {
+  test("should add as last element without index", async () => {
     const { collection } = await seed();
     const id = uuid.v4();
     const newDocument = new Document({
       id,
-      title: 'New end node',
+      title: "New end node",
       parentDocumentId: null,
     });
 
     await collection.addDocumentToStructure(newDocument);
-    expect(collection.documentStructure.length).toBe(3);
-    expect(collection.documentStructure[2].id).toBe(id);
+    expect(collection.documentStructure.length).toBe(2);
+    expect(collection.documentStructure[1].id).toBe(id);
   });
 
-  test('should add with an index', async () => {
+  test("should add with an index", async () => {
     const { collection } = await seed();
     const id = uuid.v4();
     const newDocument = new Document({
       id,
-      title: 'New end node',
+      title: "New end node",
       parentDocumentId: null,
     });
 
     await collection.addDocumentToStructure(newDocument, 1);
-    expect(collection.documentStructure.length).toBe(3);
+    expect(collection.documentStructure.length).toBe(2);
     expect(collection.documentStructure[1].id).toBe(id);
   });
 
-  test('should add as a child if with parent', async () => {
+  test("should add as a child if with parent", async () => {
     const { collection, document } = await seed();
     const id = uuid.v4();
     const newDocument = new Document({
       id,
-      title: 'New end node',
+      title: "New end node",
       parentDocumentId: document.id,
     });
 
     await collection.addDocumentToStructure(newDocument, 1);
-    expect(collection.documentStructure.length).toBe(2);
-    expect(collection.documentStructure[1].id).toBe(document.id);
-    expect(collection.documentStructure[1].children.length).toBe(1);
-    expect(collection.documentStructure[1].children[0].id).toBe(id);
+    expect(collection.documentStructure.length).toBe(1);
+    expect(collection.documentStructure[0].id).toBe(document.id);
+    expect(collection.documentStructure[0].children.length).toBe(1);
+    expect(collection.documentStructure[0].children[0].id).toBe(id);
   });
 
-  test('should add as a child if with parent with index', async () => {
+  test("should add as a child if with parent with index", async () => {
     const { collection, document } = await seed();
     const newDocument = new Document({
       id: uuid.v4(),
-      title: 'node',
+      title: "node",
       parentDocumentId: document.id,
     });
     const id = uuid.v4();
     const secondDocument = new Document({
       id,
-      title: 'New start node',
+      title: "New start node",
       parentDocumentId: document.id,
     });
 
     await collection.addDocumentToStructure(newDocument);
     await collection.addDocumentToStructure(secondDocument, 0);
-    expect(collection.documentStructure.length).toBe(2);
-    expect(collection.documentStructure[1].id).toBe(document.id);
-    expect(collection.documentStructure[1].children.length).toBe(2);
-    expect(collection.documentStructure[1].children[0].id).toBe(id);
+    expect(collection.documentStructure.length).toBe(1);
+    expect(collection.documentStructure[0].id).toBe(document.id);
+    expect(collection.documentStructure[0].children.length).toBe(2);
+    expect(collection.documentStructure[0].children[0].id).toBe(id);
   });
 
-  describe('options: documentJson', async () => {
+  describe("options: documentJson", async () => {
     test("should append supplied json over document's own", async () => {
       const { collection } = await seed();
       const id = uuid.v4();
       const newDocument = new Document({
         id: uuid.v4(),
-        title: 'New end node',
+        title: "New end node",
         parentDocumentId: null,
       });
 
@@ -95,33 +101,32 @@ describe('#addDocumentToStructure', async () => {
           children: [
             {
               id,
-              title: 'Totally fake',
+              title: "Totally fake",
               children: [],
             },
           ],
         },
       });
-      expect(collection.documentStructure[2].children.length).toBe(1);
-      expect(collection.documentStructure[2].children[0].id).toBe(id);
+      expect(collection.documentStructure[1].children.length).toBe(1);
+      expect(collection.documentStructure[1].children[0].id).toBe(id);
     });
   });
 });
 
-describe('#updateDocument', () => {
+describe("#updateDocument", () => {
   test("should update root document's data", async () => {
     const { collection, document } = await seed();
 
-    document.title = 'Updated title';
-    await document.save();
+    document.title = "Updated title";
 
+    await document.save();
     await collection.updateDocument(document);
 
-    expect(collection.documentStructure[1].title).toBe('Updated title');
+    expect(collection.documentStructure[0].title).toBe("Updated title");
   });
 
   test("should update child document's data", async () => {
     const { collection, document } = await seed();
-    // Add a child for testing
     const newDocument = await Document.create({
       parentDocumentId: document.id,
       collectionId: collection.id,
@@ -129,68 +134,36 @@ describe('#updateDocument', () => {
       userId: collection.creatorId,
       lastModifiedById: collection.creatorId,
       createdById: collection.creatorId,
-      title: 'Child document',
-      text: 'content',
+      title: "Child document",
+      text: "content",
     });
     await collection.addDocumentToStructure(newDocument);
 
-    newDocument.title = 'Updated title';
+    newDocument.title = "Updated title";
     await newDocument.save();
 
     await collection.updateDocument(newDocument);
 
-    expect(collection.documentStructure[1].children[0].title).toBe(
-      'Updated title'
+    expect(collection.documentStructure[0].children[0].title).toBe(
+      "Updated title"
     );
   });
 });
 
-describe('#moveDocument', () => {
-  test('should move a document without children', async () => {
+describe("#removeDocument", () => {
+  test("should save if removing", async () => {
     const { collection, document } = await seed();
+    jest.spyOn(collection, "save");
 
-    expect(collection.documentStructure[1].id).toBe(document.id);
-    await collection.moveDocument(document, 0);
-    expect(collection.documentStructure[0].id).toBe(document.id);
-  });
-
-  test('should move a document with children', async () => {
-    const { collection, document } = await seed();
-
-    // Add a child for testing
-    const newDocument = await Document.create({
-      parentDocumentId: document.id,
-      collectionId: collection.id,
-      teamId: collection.teamId,
-      userId: collection.creatorId,
-      lastModifiedById: collection.creatorId,
-      createdById: collection.creatorId,
-      title: 'Child document',
-      text: 'content',
-    });
-    await collection.addDocumentToStructure(newDocument);
-
-    await collection.moveDocument(document, 0);
-    expect(collection.documentStructure[0].children[0].id).toBe(newDocument.id);
-  });
-});
-
-describe('#removeDocument', () => {
-  const destroyMock = jest.fn();
-
-  test('should save if removing', async () => {
-    const { collection, document } = await seed();
-    jest.spyOn(collection, 'save');
-
-    await collection.removeDocument(document);
+    await collection.deleteDocument(document);
     expect(collection.save).toBeCalled();
   });
 
-  test('should remove documents from root', async () => {
+  test("should remove documents from root", async () => {
     const { collection, document } = await seed();
 
-    await collection.removeDocument(document);
-    expect(collection.documentStructure.length).toBe(1);
+    await collection.deleteDocument(document);
+    expect(collection.documentStructure.length).toBe(0);
 
     // Verify that the document was removed
     const collectionDocuments = await Document.findAndCountAll({
@@ -198,10 +171,10 @@ describe('#removeDocument', () => {
         collectionId: collection.id,
       },
     });
-    expect(collectionDocuments.count).toBe(1);
+    expect(collectionDocuments.count).toBe(0);
   });
 
-  test('should remove a document with child documents', async () => {
+  test("should remove a document with child documents", async () => {
     const { collection, document } = await seed();
 
     // Add a child for testing
@@ -212,24 +185,24 @@ describe('#removeDocument', () => {
       userId: collection.creatorId,
       lastModifiedById: collection.creatorId,
       createdById: collection.creatorId,
-      title: 'Child document',
-      text: 'content',
+      title: "Child document",
+      text: "content",
     });
     await collection.addDocumentToStructure(newDocument);
-    expect(collection.documentStructure[1].children.length).toBe(1);
+    expect(collection.documentStructure[0].children.length).toBe(1);
 
     // Remove the document
-    await collection.removeDocument(document);
-    expect(collection.documentStructure.length).toBe(1);
+    await collection.deleteDocument(document);
+    expect(collection.documentStructure.length).toBe(0);
     const collectionDocuments = await Document.findAndCountAll({
       where: {
         collectionId: collection.id,
       },
     });
-    expect(collectionDocuments.count).toBe(1);
+    expect(collectionDocuments.count).toBe(0);
   });
 
-  test('should remove a child document', async () => {
+  test("should remove a child document", async () => {
     const { collection, document } = await seed();
 
     // Add a child for testing
@@ -241,41 +214,65 @@ describe('#removeDocument', () => {
       lastModifiedById: collection.creatorId,
       createdById: collection.creatorId,
       publishedAt: new Date(),
-      title: 'Child document',
-      text: 'content',
+      title: "Child document",
+      text: "content",
     });
     await collection.addDocumentToStructure(newDocument);
-    expect(collection.documentStructure.length).toBe(2);
-    expect(collection.documentStructure[1].children.length).toBe(1);
+    expect(collection.documentStructure.length).toBe(1);
+    expect(collection.documentStructure[0].children.length).toBe(1);
 
     // Remove the document
-    await collection.removeDocument(newDocument);
+    await collection.deleteDocument(newDocument);
 
-    expect(collection.documentStructure.length).toBe(2);
+    expect(collection.documentStructure.length).toBe(1);
     expect(collection.documentStructure[0].children.length).toBe(0);
-    expect(collection.documentStructure[1].children.length).toBe(0);
 
     const collectionDocuments = await Document.findAndCountAll({
       where: {
         collectionId: collection.id,
       },
     });
-    expect(collectionDocuments.count).toBe(2);
+    expect(collectionDocuments.count).toBe(1);
   });
+});
 
-  describe('options: deleteDocument = false', () => {
-    test('should remove documents from the structure but not destroy them from the DB', async () => {
-      const { collection, document } = await seed();
-      jest.spyOn(collection, 'save');
+describe("#membershipUserIds", () => {
+  test("should return collection and group memberships", async () => {
+    const team = await buildTeam();
+    const teamId = team.id;
 
-      const removedNode = await collection.removeDocument(document, {
-        deleteDocument: false,
-      });
-      expect(collection.documentStructure.length).toBe(1);
-      expect(destroyMock).not.toBeCalled();
-      expect(collection.save).not.toBeCalled();
-      expect(removedNode.id).toBe(document.id);
-      expect(removedNode.children).toEqual([]);
+    // Make 6 users
+    const users = await Promise.all(
+      Array(6)
+        .fill()
+        .map(() => {
+          return buildUser({ teamId });
+        })
+    );
+
+    const collection = await buildCollection({
+      userId: users[0].id,
+      private: true,
+      teamId,
     });
+
+    const group1 = await buildGroup({ teamId });
+    const group2 = await buildGroup({ teamId });
+
+    const createdById = users[0].id;
+
+    await group1.addUser(users[0], { through: { createdById } });
+    await group1.addUser(users[1], { through: { createdById } });
+    await group2.addUser(users[2], { through: { createdById } });
+    await group2.addUser(users[3], { through: { createdById } });
+
+    await collection.addUser(users[4], { through: { createdById } });
+    await collection.addUser(users[5], { through: { createdById } });
+
+    await collection.addGroup(group1, { through: { createdById } });
+    await collection.addGroup(group2, { through: { createdById } });
+
+    const membershipUserIds = await Collection.membershipUserIds(collection.id);
+    expect(membershipUserIds.length).toBe(6);
   });
 });

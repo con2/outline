@@ -1,86 +1,79 @@
 // @flow
-import * as React from 'react';
-import ReactDOM from 'react-dom';
-import keydown from 'react-keydown';
-import Waypoint from 'react-waypoint';
-import { observable, action } from 'mobx';
-import { observer, inject } from 'mobx-react';
-import type { SearchResult } from 'types';
-import _ from 'lodash';
-import DocumentsStore, {
-  DEFAULT_PAGINATION_LIMIT,
-} from 'stores/DocumentsStore';
+import * as React from "react";
+import ReactDOM from "react-dom";
+import keydown from "react-keydown";
+import { Waypoint } from "react-waypoint";
+import { withRouter, Link } from "react-router-dom";
+import type { Location, RouterHistory } from "react-router-dom";
+import { PlusIcon } from "outline-icons";
+import { observable, action } from "mobx";
+import { observer, inject } from "mobx-react";
+import { debounce } from "lodash";
+import queryString from "query-string";
+import styled from "styled-components";
+import ArrowKeyNavigation from "boundless-arrow-key-navigation";
 
-import { withRouter } from 'react-router-dom';
-import { searchUrl } from 'utils/routeHelpers';
-import styled from 'styled-components';
-import ArrowKeyNavigation from 'boundless-arrow-key-navigation';
+import { DEFAULT_PAGINATION_LIMIT } from "stores/BaseStore";
+import DocumentsStore from "stores/DocumentsStore";
+import UsersStore from "stores/UsersStore";
+import { newDocumentUrl, searchUrl } from "utils/routeHelpers";
+import { meta } from "utils/keyboard";
 
-import Empty from 'components/Empty';
-import Flex from 'shared/components/Flex';
-import CenteredContent from 'components/CenteredContent';
-import LoadingIndicator from 'components/LoadingIndicator';
-import SearchField from './components/SearchField';
-
-import DocumentPreview from 'components/DocumentPreview';
-import PageTitle from 'components/PageTitle';
+import Flex from "shared/components/Flex";
+import Button from "components/Button";
+import Empty from "components/Empty";
+import Fade from "components/Fade";
+import HelpText from "components/HelpText";
+import CenteredContent from "components/CenteredContent";
+import LoadingIndicator from "components/LoadingIndicator";
+import DocumentPreview from "components/DocumentPreview";
+import NewDocumentMenu from "menus/NewDocumentMenu";
+import PageTitle from "components/PageTitle";
+import SearchField from "./components/SearchField";
+import StatusFilter from "./components/StatusFilter";
+import CollectionFilter from "./components/CollectionFilter";
+import UserFilter from "./components/UserFilter";
+import DateFilter from "./components/DateFilter";
 
 type Props = {
-  history: Object,
+  history: RouterHistory,
   match: Object,
+  location: Location,
   documents: DocumentsStore,
+  users: UsersStore,
   notFound: ?boolean,
 };
 
-const Container = styled(CenteredContent)`
-  > div {
-    position: relative;
-    height: 100%;
-  }
-`;
-
-const ResultsWrapper = styled(Flex)`
-  position: absolute;
-  transition: all 300ms cubic-bezier(0.65, 0.05, 0.36, 1);
-  top: ${props => (props.pinToTop ? '0%' : '50%')};
-  margin-top: ${props => (props.pinToTop ? '40px' : '-75px')};
-  width: 100%;
-`;
-
-const ResultList = styled(Flex)`
-  margin-bottom: 150px;
-  opacity: ${props => (props.visible ? '1' : '0')};
-  transition: all 400ms cubic-bezier(0.65, 0.05, 0.36, 1);
-`;
-
-const StyledArrowKeyNavigation = styled(ArrowKeyNavigation)`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-`;
-
 @observer
 class Search extends React.Component<Props> {
-  firstDocument: HTMLElement;
+  firstDocument: ?DocumentPreview;
 
-  @observable results: SearchResult[] = [];
-  @observable query: string = '';
+  @observable
+  query: string = decodeURIComponent(this.props.match.params.term || "");
+  @observable params: URLSearchParams = new URLSearchParams();
   @observable offset: number = 0;
   @observable allowLoadMore: boolean = true;
   @observable isFetching: boolean = false;
-  @observable pinToTop: boolean = false;
+  @observable pinToTop: boolean = !!this.props.match.params.term;
 
   componentDidMount() {
-    this.handleQueryChange();
-  }
+    this.handleTermChange();
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.match.params.query !== this.props.match.params.query) {
+    if (this.props.location.search) {
       this.handleQueryChange();
     }
   }
 
-  @keydown('esc')
+  componentDidUpdate(prevProps) {
+    if (prevProps.location.search !== this.props.location.search) {
+      this.handleQueryChange();
+    }
+    if (prevProps.match.params.term !== this.props.match.params.term) {
+      this.handleTermChange();
+    }
+  }
+
+  @keydown("esc")
   goBack() {
     this.props.history.goBack();
   }
@@ -103,22 +96,78 @@ class Search extends React.Component<Props> {
   };
 
   handleQueryChange = () => {
-    const query = this.props.match.params.query;
-    this.query = query ? query : '';
-    this.results = [];
+    this.params = new URLSearchParams(this.props.location.search);
     this.offset = 0;
     this.allowLoadMore = true;
 
     // To prevent "no results" showing before debounce kicks in
-    if (this.query) this.isFetching = true;
+    this.isFetching = true;
 
     this.fetchResultsDebounced();
   };
 
-  fetchResultsDebounced = _.debounce(this.fetchResults, 350, {
-    leading: false,
-    trailing: true,
-  });
+  handleTermChange = () => {
+    const query = decodeURIComponent(this.props.match.params.term || "");
+    this.query = query ? query : "";
+    this.offset = 0;
+    this.allowLoadMore = true;
+
+    // To prevent "no results" showing before debounce kicks in
+    this.isFetching = !!this.query;
+
+    this.fetchResultsDebounced();
+  };
+
+  handleFilterChange = search => {
+    this.props.history.replace({
+      pathname: this.props.location.pathname,
+      search: queryString.stringify({
+        ...queryString.parse(this.props.location.search),
+        ...search,
+      }),
+    });
+  };
+
+  handleNewDoc = () => {
+    if (this.collectionId) {
+      this.props.history.push(newDocumentUrl(this.collectionId));
+    }
+  };
+
+  get includeArchived() {
+    return this.params.get("includeArchived") === "true";
+  }
+
+  get collectionId() {
+    const id = this.params.get("collectionId");
+    return id ? id : undefined;
+  }
+
+  get userId() {
+    const id = this.params.get("userId");
+    return id ? id : undefined;
+  }
+
+  get dateFilter() {
+    const id = this.params.get("dateFilter");
+    return id ? id : undefined;
+  }
+
+  get isFiltered() {
+    return (
+      this.dateFilter ||
+      this.userId ||
+      this.collectionId ||
+      this.includeArchived
+    );
+  }
+
+  get title() {
+    const query = this.query;
+    const title = "Search";
+    if (query) return `${query} – ${title}`;
+    return title;
+  }
 
   @action
   loadMoreResults = async () => {
@@ -131,52 +180,57 @@ class Search extends React.Component<Props> {
 
   @action
   fetchResults = async () => {
-    this.isFetching = true;
-
     if (this.query) {
+      this.isFetching = true;
+
       try {
         const results = await this.props.documents.search(this.query, {
           offset: this.offset,
           limit: DEFAULT_PAGINATION_LIMIT,
+          dateFilter: this.dateFilter,
+          includeArchived: this.includeArchived,
+          includeDrafts: true,
+          collectionId: this.collectionId,
+          userId: this.userId,
         });
-        this.results = this.results.concat(results);
 
-        if (this.results.length > 0) this.pinToTop = true;
+        this.pinToTop = true;
+
         if (results.length === 0 || results.length < DEFAULT_PAGINATION_LIMIT) {
           this.allowLoadMore = false;
         } else {
           this.offset += DEFAULT_PAGINATION_LIMIT;
         }
-      } catch (e) {
-        console.error('Something went wrong');
+      } finally {
+        this.isFetching = false;
       }
     } else {
-      this.results = [];
       this.pinToTop = false;
     }
-
-    this.isFetching = false;
   };
 
+  fetchResultsDebounced = debounce(this.fetchResults, 350, {
+    leading: false,
+    trailing: true,
+  });
+
   updateLocation = query => {
-    this.props.history.replace(searchUrl(query));
+    this.props.history.replace({
+      pathname: searchUrl(query),
+      search: this.props.location.search,
+    });
   };
 
   setFirstDocumentRef = ref => {
     this.firstDocument = ref;
   };
 
-  get title() {
-    const query = this.query;
-    const title = 'Search';
-    if (query) return `${query} - ${title}`;
-    return title;
-  }
-
   render() {
-    const { documents, notFound } = this.props;
-    const showEmpty =
-      !this.isFetching && this.query && this.results.length === 0;
+    const { documents, notFound, location } = this.props;
+    const results = documents.searchResults(this.query);
+    const showEmpty = !this.isFetching && this.query && results.length === 0;
+    const showShortcutTip =
+      !this.pinToTop && location.state && location.state.fromMenu;
 
     return (
       <Container auto>
@@ -192,23 +246,80 @@ class Search extends React.Component<Props> {
           <SearchField
             onKeyDown={this.handleKeyDown}
             onChange={this.updateLocation}
-            value={this.query}
+            defaultValue={this.query}
           />
-          {showEmpty && <Empty>No matching documents.</Empty>}
+          {showShortcutTip && (
+            <Fade>
+              <HelpText small>
+                Use the <strong>{meta}+K</strong> shortcut to search from
+                anywhere in Outline
+              </HelpText>
+            </Fade>
+          )}
+          {this.pinToTop && (
+            <Filters>
+              <StatusFilter
+                includeArchived={this.includeArchived}
+                onSelect={includeArchived =>
+                  this.handleFilterChange({ includeArchived })
+                }
+              />
+              <CollectionFilter
+                collectionId={this.collectionId}
+                onSelect={collectionId =>
+                  this.handleFilterChange({ collectionId })
+                }
+              />
+              <UserFilter
+                userId={this.userId}
+                onSelect={userId => this.handleFilterChange({ userId })}
+              />
+              <DateFilter
+                dateFilter={this.dateFilter}
+                onSelect={dateFilter => this.handleFilterChange({ dateFilter })}
+              />
+            </Filters>
+          )}
+          {showEmpty && (
+            <Fade>
+              <Empty>
+                <Centered column>
+                  <HelpText>
+                    No documents found for your search filters. <br />Create a
+                    new document?
+                  </HelpText>
+                  <Wrapper>
+                    {this.collectionId ? (
+                      <Button
+                        onClick={this.handleNewDoc}
+                        icon={<PlusIcon />}
+                        primary
+                      >
+                        New doc
+                      </Button>
+                    ) : (
+                      <NewDocumentMenu />
+                    )}&nbsp;&nbsp;
+                    <Button as={Link} to="/search" neutral>
+                      Clear filters
+                    </Button>
+                  </Wrapper>
+                </Centered>
+              </Empty>
+            </Fade>
+          )}
           <ResultList column visible={this.pinToTop}>
             <StyledArrowKeyNavigation
               mode={ArrowKeyNavigation.mode.VERTICAL}
               defaultActiveChildIndex={0}
             >
-              {this.results.map((result, index) => {
-                const document = documents.getById(result.document.id);
+              {results.map((result, index) => {
+                const document = documents.data.get(result.document.id);
                 if (!document) return null;
 
                 return (
                   <DocumentPreview
-                    innerRef={ref =>
-                      index === 0 && this.setFirstDocumentRef(ref)
-                    }
+                    ref={ref => index === 0 && this.setFirstDocumentRef(ref)}
                     key={document.id}
                     document={document}
                     highlight={this.query}
@@ -228,4 +339,53 @@ class Search extends React.Component<Props> {
   }
 }
 
-export default withRouter(inject('documents')(Search));
+const Wrapper = styled(Flex)`
+  justify-content: center;
+  margin: 10px 0;
+`;
+
+const Centered = styled(Flex)`
+  text-align: center;
+  margin: 30vh auto 0;
+  max-width: 380px;
+  transform: translateY(-50%);
+`;
+
+const Container = styled(CenteredContent)`
+  > div {
+    position: relative;
+    height: 100%;
+  }
+`;
+
+const ResultsWrapper = styled(Flex)`
+  position: absolute;
+  transition: all 300ms cubic-bezier(0.65, 0.05, 0.36, 1);
+  top: ${props => (props.pinToTop ? "0%" : "50%")};
+  margin-top: ${props => (props.pinToTop ? "40px" : "-75px")};
+  width: 100%;
+`;
+
+const ResultList = styled(Flex)`
+  margin-bottom: 150px;
+  opacity: ${props => (props.visible ? "1" : "0")};
+  transition: all 400ms cubic-bezier(0.65, 0.05, 0.36, 1);
+`;
+
+const StyledArrowKeyNavigation = styled(ArrowKeyNavigation)`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+`;
+
+const Filters = styled(Flex)`
+  margin-bottom: 12px;
+  opacity: 0.85;
+  transition: opacity 100ms ease-in-out;
+
+  &:hover {
+    opacity: 1;
+  }
+`;
+
+export default withRouter(inject("documents")(Search));

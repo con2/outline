@@ -1,53 +1,139 @@
 // @flow
-import * as React from 'react';
-import invariant from 'invariant';
-import { observer, inject } from 'mobx-react';
+import * as React from "react";
+import invariant from "invariant";
+import { observable } from "mobx";
+import { observer, inject } from "mobx-react";
+import { PlusIcon } from "outline-icons";
 
-import AuthStore from 'stores/AuthStore';
-import UsersStore from 'stores/UsersStore';
-import CenteredContent from 'components/CenteredContent';
-import PageTitle from 'components/PageTitle';
-import HelpText from 'components/HelpText';
-import UserListItem from './components/UserListItem';
-import List from 'components/List';
+import Empty from "components/Empty";
+import Modal from "components/Modal";
+import Button from "components/Button";
+import Invite from "scenes/Invite";
+import CenteredContent from "components/CenteredContent";
+import PageTitle from "components/PageTitle";
+import HelpText from "components/HelpText";
+import PaginatedList from "components/PaginatedList";
+import Tabs, { Separator } from "components/Tabs";
+import Tab from "components/Tab";
+import UserListItem from "./components/UserListItem";
+
+import AuthStore from "stores/AuthStore";
+import UsersStore from "stores/UsersStore";
+import PoliciesStore from "stores/PoliciesStore";
 
 type Props = {
   auth: AuthStore,
   users: UsersStore,
+  policies: PoliciesStore,
+  match: Object,
 };
 
 @observer
 class People extends React.Component<Props> {
-  componentDidMount() {
-    this.props.users.fetchPage({ limit: 100 });
-  }
+  @observable inviteModalOpen: boolean = false;
+
+  handleInviteModalOpen = () => {
+    this.inviteModalOpen = true;
+  };
+
+  handleInviteModalClose = () => {
+    this.inviteModalOpen = false;
+  };
+
+  fetchPage = params => {
+    return this.props.users.fetchPage({ ...params, includeSuspended: true });
+  };
 
   render() {
-    const { users, auth } = this.props;
+    const { auth, policies, match } = this.props;
+    const { filter } = match.params;
     const currentUser = auth.user;
-    invariant(currentUser, 'User should exist');
+    const team = auth.team;
+    invariant(currentUser, "User should exist");
+    invariant(team, "Team should exist");
+
+    let users = this.props.users.active;
+    if (filter === "all") {
+      users = this.props.users.all;
+    } else if (filter === "admins") {
+      users = this.props.users.admins;
+    } else if (filter === "suspended") {
+      users = this.props.users.suspended;
+    } else if (filter === "invited") {
+      users = this.props.users.invited;
+    }
+
+    const can = policies.abilities(team.id);
 
     return (
       <CenteredContent>
         <PageTitle title="People" />
         <h1>People</h1>
         <HelpText>
-          Everyone that has signed in to your Outline appear here. It’s possible
-          that there are other people who have access but haven’t signed in yet.
+          Everyone that has signed into Outline appears here. It’s possible that
+          there are other users who have access through {team.signinMethods} but
+          haven’t signed in yet.
         </HelpText>
+        <Button
+          type="button"
+          data-on="click"
+          data-event-category="invite"
+          data-event-action="peoplePage"
+          onClick={this.handleInviteModalOpen}
+          icon={<PlusIcon />}
+          neutral
+        >
+          Invite people…
+        </Button>
 
-        <List>
-          {users.data.map(user => (
+        <Tabs>
+          <Tab to="/settings/people" exact>
+            Active
+          </Tab>
+          <Tab to="/settings/people/admins" exact>
+            Admins
+          </Tab>
+          {can.update && (
+            <Tab to="/settings/people/suspended" exact>
+              Suspended
+            </Tab>
+          )}
+          <Tab to="/settings/people/all" exact>
+            Everyone
+          </Tab>
+
+          {can.invite && (
+            <React.Fragment>
+              <Separator />
+              <Tab to="/settings/people/invited" exact>
+                Invited
+              </Tab>
+            </React.Fragment>
+          )}
+        </Tabs>
+        <PaginatedList
+          items={users}
+          empty={<Empty>No people to see here.</Empty>}
+          fetch={this.fetchPage}
+          renderItem={item => (
             <UserListItem
-              key={user.id}
-              user={user}
-              showMenu={!!currentUser.isAdmin && currentUser.id !== user.id}
+              key={item.id}
+              user={item}
+              showMenu={can.update && currentUser.id !== item.id}
             />
-          ))}
-        </List>
+          )}
+        />
+
+        <Modal
+          title="Invite people"
+          onRequestClose={this.handleInviteModalClose}
+          isOpen={this.inviteModalOpen}
+        >
+          <Invite onSubmit={this.handleInviteModalClose} />
+        </Modal>
       </CenteredContent>
     );
   }
 }
 
-export default inject('auth', 'users')(People);
+export default inject("auth", "users", "policies")(People);

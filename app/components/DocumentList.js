@@ -1,20 +1,15 @@
 // @flow
-import * as React from 'react';
-import Document from 'models/Document';
-import DocumentPreview from 'components/DocumentPreview';
-import ArrowKeyNavigation from 'boundless-arrow-key-navigation';
+import * as React from "react";
+import Document from "models/Document";
+import DocumentPreview from "components/DocumentPreview";
+import ArrowKeyNavigation from "boundless-arrow-key-navigation";
 
 type Props = {
   documents: Document[],
-  showCollection?: boolean,
   limit?: number,
 };
 
-export default function DocumentList({
-  limit,
-  showCollection,
-  documents,
-}: Props) {
+export default function DocumentList({ limit, documents, ...rest }: Props) {
   const items = limit ? documents.splice(0, limit) : documents;
 
   return (
@@ -23,11 +18,7 @@ export default function DocumentList({
       defaultActiveChildIndex={0}
     >
       {items.map(document => (
-        <DocumentPreview
-          key={document.id}
-          document={document}
-          showCollection={showCollection}
-        />
+        <DocumentPreview key={document.id} document={document} {...rest} />
       ))}
     </ArrowKeyNavigation>
   );

@@ -1,18 +1,18 @@
 // @flow
-import * as React from 'react';
-import { observable } from 'mobx';
-import { observer, inject } from 'mobx-react';
-import styled from 'styled-components';
+import * as React from "react";
+import { observable } from "mobx";
+import { observer, inject } from "mobx-react";
+import styled from "styled-components";
 
-import AuthStore from 'stores/AuthStore';
-import UiStore from 'stores/UiStore';
-import ImageUpload from './components/ImageUpload';
-import Input, { LabelText } from 'components/Input';
-import Button from 'components/Button';
-import CenteredContent from 'components/CenteredContent';
-import PageTitle from 'components/PageTitle';
-import HelpText from 'components/HelpText';
-import Flex from 'shared/components/Flex';
+import AuthStore from "stores/AuthStore";
+import UiStore from "stores/UiStore";
+import ImageUpload from "./components/ImageUpload";
+import Input, { LabelText } from "components/Input";
+import Button from "components/Button";
+import CenteredContent from "components/CenteredContent";
+import PageTitle from "components/PageTitle";
+import HelpText from "components/HelpText";
+import Flex from "shared/components/Flex";
 
 type Props = {
   auth: AuthStore,
@@ -25,11 +25,14 @@ class Details extends React.Component<Props> {
   form: ?HTMLFormElement;
 
   @observable name: string;
+  @observable subdomain: ?string;
   @observable avatarUrl: ?string;
 
   componentDidMount() {
-    if (this.props.auth.team) {
-      this.name = this.props.auth.team.name;
+    const { team } = this.props.auth;
+    if (team) {
+      this.name = team.name;
+      this.subdomain = team.subdomain;
     }
   }
 
@@ -37,18 +40,27 @@ class Details extends React.Component<Props> {
     clearTimeout(this.timeout);
   }
 
-  handleSubmit = async (ev: SyntheticEvent<*>) => {
+  handleSubmit = async (ev: SyntheticEvent<>) => {
     ev.preventDefault();
 
-    await this.props.auth.updateTeam({
-      name: this.name,
-      avatarUrl: this.avatarUrl,
-    });
-    this.props.ui.showToast('Settings saved', 'success');
+    try {
+      await this.props.auth.updateTeam({
+        name: this.name,
+        avatarUrl: this.avatarUrl,
+        subdomain: this.subdomain,
+      });
+      this.props.ui.showToast("Settings saved");
+    } catch (err) {
+      this.props.ui.showToast(err.message);
+    }
   };
 
   handleNameChange = (ev: SyntheticInputEvent<*>) => {
     this.name = ev.target.value;
+  };
+
+  handleSubdomainChange = (ev: SyntheticInputEvent<*>) => {
+    this.subdomain = ev.target.value.toLowerCase();
   };
 
   handleAvatarUpload = (avatarUrl: string) => {
@@ -56,7 +68,7 @@ class Details extends React.Component<Props> {
   };
 
   handleAvatarError = (error: ?string) => {
-    this.props.ui.showToast(error || 'Unable to upload new avatar');
+    this.props.ui.showToast(error || "Unable to upload new logo");
   };
 
   get isValid() {
@@ -72,18 +84,10 @@ class Details extends React.Component<Props> {
       <CenteredContent>
         <PageTitle title="Details" />
         <h1>Details</h1>
-        {team.slackConnected && (
-          <HelpText>
-            This team is connected to a <strong>Slack</strong> team. Your
-            colleagues can join by signing in with their Slack account details.
-          </HelpText>
-        )}
-        {team.googleConnected && (
-          <HelpText>
-            This team is connected to a <strong>Google</strong> domain. Your
-            colleagues can join by signing in with their Google account.
-          </HelpText>
-        )}
+        <HelpText>
+          These details affect the way that your Outline appears to everyone on
+          the team.
+        </HelpText>
 
         <ProfilePicture column>
           <LabelText>Logo</LabelText>
@@ -104,13 +108,35 @@ class Details extends React.Component<Props> {
         <form onSubmit={this.handleSubmit} ref={ref => (this.form = ref)}>
           <Input
             label="Name"
+            name="name"
+            autoComplete="organization"
             value={this.name}
             onChange={this.handleNameChange}
             required
             short
           />
+          {process.env.SUBDOMAINS_ENABLED && (
+            <React.Fragment>
+              <Input
+                label="Subdomain"
+                name="subdomain"
+                value={this.subdomain || ""}
+                onChange={this.handleSubdomainChange}
+                autoComplete="off"
+                minLength={4}
+                maxLength={32}
+                short
+              />
+              {this.subdomain && (
+                <HelpText small>
+                  Your knowledgebase will be accessible at{" "}
+                  <strong>{this.subdomain}.getoutline.com</strong>
+                </HelpText>
+              )}
+            </React.Fragment>
+          )}
           <Button type="submit" disabled={isSaving || !this.isValid}>
-            {isSaving ? 'Saving…' : 'Save'}
+            {isSaving ? "Saving…" : "Save"}
           </Button>
         </form>
       </CenteredContent>
@@ -157,4 +183,4 @@ const Avatar = styled.img`
   ${avatarStyles};
 `;
 
-export default inject('auth', 'ui')(Details);
+export default inject("auth", "ui")(Details);

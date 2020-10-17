@@ -1,30 +1,36 @@
 // @flow
-import validator from 'validator';
-import { type Context } from 'koa';
-import { ParamRequiredError, ValidationError } from '../errors';
-import { validateColorHex } from '../../shared/utils/color';
+import validator from "validator";
+import { type Context } from "koa";
+import { ParamRequiredError, ValidationError } from "../errors";
+import { validateColorHex } from "../../shared/utils/color";
 
 export default function validation() {
   return function validationMiddleware(ctx: Context, next: () => Promise<*>) {
     ctx.assertPresent = (value, message) => {
-      if (value === undefined || value === null || value === '') {
+      if (value === undefined || value === null || value === "") {
         throw new ParamRequiredError(message);
       }
     };
 
-    ctx.assertNotEmpty = (value, message) => {
-      if (value === '') {
+    ctx.assertIn = (value, options, message) => {
+      if (!options.includes(value)) {
         throw new ValidationError(message);
       }
     };
 
-    ctx.assertEmail = (value, message) => {
+    ctx.assertNotEmpty = (value, message) => {
+      if (value === "") {
+        throw new ValidationError(message);
+      }
+    };
+
+    ctx.assertEmail = (value = "", message) => {
       if (!validator.isEmail(value)) {
         throw new ValidationError(message);
       }
     };
 
-    ctx.assertUuid = (value, message) => {
+    ctx.assertUuid = (value = "", message) => {
       if (!validator.isUUID(value)) {
         throw new ValidationError(message);
       }

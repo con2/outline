@@ -1,43 +1,57 @@
 // @flow
-import * as React from 'react';
-import { observer, inject } from 'mobx-react';
-import { NewDocumentIcon } from 'outline-icons';
+import * as React from "react";
+import { observer, inject } from "mobx-react";
 
-import CenteredContent from 'components/CenteredContent';
-import { ListPlaceholder } from 'components/LoadingPlaceholder';
-import Empty from 'components/Empty';
-import PageTitle from 'components/PageTitle';
-import Heading from 'components/Heading';
-import DocumentList from 'components/DocumentList';
-import NewDocumentMenu from 'menus/NewDocumentMenu';
-import Actions, { Action } from 'components/Actions';
-import DocumentsStore from 'stores/DocumentsStore';
+import CenteredContent from "components/CenteredContent";
+import Empty from "components/Empty";
+import PageTitle from "components/PageTitle";
+import Heading from "components/Heading";
+import PaginatedDocumentList from "components/PaginatedDocumentList";
+import InputSearch from "components/InputSearch";
+import Tabs from "components/Tabs";
+import Tab from "components/Tab";
+import NewDocumentMenu from "menus/NewDocumentMenu";
+import Actions, { Action } from "components/Actions";
+import DocumentsStore from "stores/DocumentsStore";
 
 type Props = {
   documents: DocumentsStore,
+  match: Object,
 };
 
 @observer
 class Starred extends React.Component<Props> {
-  componentDidMount() {
-    this.props.documents.fetchStarred();
-  }
-
   render() {
-    const { isLoaded, isFetching, starred } = this.props.documents;
-    const showLoading = !isLoaded && isFetching;
-    const showEmpty = isLoaded && !starred.length;
+    const { fetchStarred, starred, starredAlphabetical } = this.props.documents;
+    const { sort } = this.props.match.params;
 
     return (
       <CenteredContent column auto>
         <PageTitle title="Starred" />
         <Heading>Starred</Heading>
-        {showLoading && <ListPlaceholder />}
-        {showEmpty && <Empty>You’ve not starred any documents yet.</Empty>}
-        <DocumentList documents={starred} />
+        <PaginatedDocumentList
+          heading={
+            <Tabs>
+              <Tab to="/starred" exact>
+                Recently Updated
+              </Tab>
+              <Tab to="/starred/alphabetical" exact>
+                Alphabetical
+              </Tab>
+            </Tabs>
+          }
+          empty={<Empty>You’ve not starred any documents yet.</Empty>}
+          fetch={fetchStarred}
+          documents={sort === "alphabetical" ? starredAlphabetical : starred}
+          showCollection
+        />
+
         <Actions align="center" justify="flex-end">
           <Action>
-            <NewDocumentMenu label={<NewDocumentIcon />} />
+            <InputSearch />
+          </Action>
+          <Action>
+            <NewDocumentMenu />
           </Action>
         </Actions>
       </CenteredContent>
@@ -45,4 +59,4 @@ class Starred extends React.Component<Props> {
   }
 }
 
-export default inject('documents')(Starred);
+export default inject("documents")(Starred);

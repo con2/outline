@@ -1,11 +1,13 @@
 // @flow
-import redis from 'redis';
-import redisLock from 'redis-lock';
+import Redis from "ioredis";
 
-const client = redis.createClient(process.env.REDIS_URL);
-const lock = redisLock(client);
+const client = new Redis(process.env.REDIS_URL);
+const subscriber = new Redis(process.env.REDIS_URL);
 
-const asyncLock = (lockName: string) =>
-  new Promise(resolve => lock(lockName, unlock => resolve(unlock)));
+// More than the default of 10 listeners is expected for the amount of queues
+// we're running. Increase the max here to prevent a warning in the console:
+// https://github.com/OptimalBits/bull/issues/1192
+client.setMaxListeners(100);
+subscriber.setMaxListeners(100);
 
-export { client, asyncLock };
+export { client, subscriber };

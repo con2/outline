@@ -1,28 +1,32 @@
 // @flow
-import * as React from 'react';
-import { observer } from 'mobx-react';
-import { Link } from 'react-router-dom';
-import Document from 'models/Document';
-import styled, { withTheme } from 'styled-components';
-import Flex from 'shared/components/Flex';
-import Highlight from 'components/Highlight';
-import { StarredIcon } from 'outline-icons';
-import PublishingInfo from './components/PublishingInfo';
-import DocumentMenu from 'menus/DocumentMenu';
+import * as React from "react";
+import { observer } from "mobx-react";
+import { Link } from "react-router-dom";
+import { StarredIcon } from "outline-icons";
+import styled, { withTheme } from "styled-components";
+import Flex from "shared/components/Flex";
+import Badge from "components/Badge";
+import Tooltip from "components/Tooltip";
+import Highlight from "components/Highlight";
+import PublishingInfo from "components/PublishingInfo";
+import DocumentMenu from "menus/DocumentMenu";
+import Document from "models/Document";
 
 type Props = {
   document: Document,
   highlight?: ?string,
   context?: ?string,
   showCollection?: boolean,
-  innerRef?: *,
+  showPublished?: boolean,
+  showPin?: boolean,
+  showDraft?: boolean,
 };
 
 const StyledStar = withTheme(styled(({ solid, theme, ...props }) => (
-  <StarredIcon color={solid ? theme.black : theme.text} {...props} />
+  <StarredIcon color={theme.text} {...props} />
 ))`
   flex-shrink: 0;
-  opacity: ${props => (props.solid ? '1 !important' : 0)};
+  opacity: ${props => (props.solid ? "1 !important" : 0)};
   transition: all 100ms ease-in-out;
 
   &:hover {
@@ -42,10 +46,9 @@ const StyledDocumentMenu = styled(DocumentMenu)`
 
 const DocumentLink = styled(Link)`
   display: block;
-  margin: 0 -16px;
-  padding: 10px 16px;
+  margin: 10px -8px;
+  padding: 6px 8px;
   border-radius: 8px;
-  border: 2px solid transparent;
   max-height: 50vh;
   min-width: 100%;
   overflow: hidden;
@@ -58,8 +61,7 @@ const DocumentLink = styled(Link)`
   &:hover,
   &:active,
   &:focus {
-    background: ${props => props.theme.smokeLight};
-    border: 2px solid ${props => props.theme.smoke};
+    background: ${props => props.theme.listItemHoverBackground};
     outline: none;
 
     ${StyledStar}, ${StyledDocumentMenu} {
@@ -69,10 +71,6 @@ const DocumentLink = styled(Link)`
         opacity: 1;
       }
     }
-  }
-
-  &:focus {
-    border: 2px solid ${props => props.theme.slateDark};
   }
 `;
 
@@ -84,6 +82,8 @@ const Heading = styled.h3`
   margin-bottom: 0.25em;
   overflow: hidden;
   white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 `;
 
 const Actions = styled(Flex)`
@@ -99,7 +99,7 @@ const Title = styled(Highlight)`
 
 const ResultContext = styled(Highlight)`
   display: block;
-  color: ${props => props.theme.slateDark};
+  color: ${props => props.theme.textTertiary};
   font-size: 14px;
   margin-top: -0.25em;
   margin-bottom: 0.25em;
@@ -109,13 +109,13 @@ const SEARCH_RESULT_REGEX = /<b\b[^>]*>(.*?)<\/b>/gi;
 
 @observer
 class DocumentPreview extends React.Component<Props> {
-  star = (ev: SyntheticEvent<*>) => {
+  star = (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     ev.stopPropagation();
     this.props.document.star();
   };
 
-  unstar = (ev: SyntheticEvent<*>) => {
+  unstar = (ev: SyntheticEvent<>) => {
     ev.preventDefault();
     ev.stopPropagation();
     this.props.document.unstar();
@@ -124,14 +124,16 @@ class DocumentPreview extends React.Component<Props> {
   replaceResultMarks = (tag: string) => {
     // don't use SEARCH_RESULT_REGEX here as it causes
     // an infinite loop to trigger a regex inside it's own callback
-    return tag.replace(/<b\b[^>]*>(.*?)<\/b>/gi, '$1');
+    return tag.replace(/<b\b[^>]*>(.*?)<\/b>/gi, "$1");
   };
 
   render() {
     const {
       document,
       showCollection,
-      innerRef,
+      showPublished,
+      showPin,
+      showDraft = true,
       highlight,
       context,
       ...rest
@@ -139,7 +141,7 @@ class DocumentPreview extends React.Component<Props> {
 
     const queryIsInTitle =
       !!highlight &&
-      !!document.title.toLowerCase().match(highlight.toLowerCase());
+      !!document.title.toLowerCase().includes(highlight.toLowerCase());
 
     return (
       <DocumentLink
@@ -147,21 +149,31 @@ class DocumentPreview extends React.Component<Props> {
           pathname: document.url,
           state: { title: document.title },
         }}
-        innerRef={innerRef}
         {...rest}
       >
         <Heading>
-          <Title text={document.title} highlight={highlight} />
-          {!document.isDraft && (
-            <Actions>
-              {document.starred ? (
-                <StyledStar onClick={this.unstar} solid />
-              ) : (
-                <StyledStar onClick={this.star} />
-              )}
-            </Actions>
-          )}
-          <StyledDocumentMenu document={document} />
+          <Title text={document.title || "Untitled"} highlight={highlight} />
+          {!document.isDraft &&
+            !document.isArchived && (
+              <Actions>
+                {document.isStarred ? (
+                  <StyledStar onClick={this.unstar} solid />
+                ) : (
+                  <StyledStar onClick={this.star} />
+                )}
+              </Actions>
+            )}
+          {document.isDraft &&
+            showDraft && (
+              <Tooltip
+                tooltip="Only visible to you"
+                delay={500}
+                placement="top"
+              >
+                <Badge>Draft</Badge>
+              </Tooltip>
+            )}
+          <StyledDocumentMenu document={document} showPin={showPin} />
         </Heading>
         {!queryIsInTitle && (
           <ResultContext
@@ -172,7 +184,8 @@ class DocumentPreview extends React.Component<Props> {
         )}
         <PublishingInfo
           document={document}
-          collection={showCollection ? document.collection : undefined}
+          showCollection={showCollection}
+          showPublished={showPublished}
         />
       </DocumentLink>
     );

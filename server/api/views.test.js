@@ -1,27 +1,58 @@
 /* eslint-disable flowtype/require-valid-file-annotation */
-import TestServer from 'fetch-test-server';
-import app from '..';
-import { flushdb, seed } from '../test/support';
-import { buildUser } from '../test/factories';
+import TestServer from "fetch-test-server";
+import app from "../app";
+import { View, CollectionUser } from "../models";
+import { flushdb, seed } from "../test/support";
+import { buildUser } from "../test/factories";
 
 const server = new TestServer(app.callback());
 
 beforeEach(flushdb);
 afterAll(server.close);
 
-describe('#views.list', async () => {
-  it('should return views for a document', async () => {
+describe("#views.list", async () => {
+  it("should return views for a document", async () => {
     const { user, document } = await seed();
-    const res = await server.post('/api/views.list', {
-      body: { token: user.getJwtToken(), id: document.id },
+    await View.increment({ documentId: document.id, userId: user.id });
+
+    const res = await server.post("/api/views.list", {
+      body: { token: user.getJwtToken(), documentId: document.id },
     });
+    const body = await res.json();
+
     expect(res.status).toEqual(200);
+    expect(body.data[0].count).toBe(1);
+    expect(body.data[0].user.name).toBe(user.name);
   });
 
-  it('should require authentication', async () => {
+  it("should return views for a document in read-only collection", async () => {
+    const { user, document, collection } = await seed();
+    collection.private = true;
+    await collection.save();
+
+    await CollectionUser.create({
+      createdById: user.id,
+      collectionId: collection.id,
+      userId: user.id,
+      permission: "read",
+    });
+
+    await View.increment({ documentId: document.id, userId: user.id });
+
+    const res = await server.post("/api/views.list", {
+      body: { token: user.getJwtToken(), documentId: document.id },
+    });
+    const body = await res.json();
+
+    expect(res.status).toEqual(200);
+    expect(body.data[0].count).toBe(1);
+    expect(body.data[0].user.name).toBe(user.name);
+  });
+
+  it("should require authentication", async () => {
     const { document } = await seed();
-    const res = await server.post('/api/views.list', {
-      body: { id: document.id },
+    const res = await server.post("/api/views.list", {
+      body: { documentId: document.id },
     });
     const body = await res.json();
 
@@ -29,32 +60,53 @@ describe('#views.list', async () => {
     expect(body).toMatchSnapshot();
   });
 
-  it('should require authorization', async () => {
+  it("should require authorization", async () => {
     const { document } = await seed();
     const user = await buildUser();
-    const res = await server.post('/api/views.list', {
-      body: { token: user.getJwtToken(), id: document.id },
+    const res = await server.post("/api/views.list", {
+      body: { token: user.getJwtToken(), documentId: document.id },
     });
     expect(res.status).toEqual(403);
   });
 });
 
-describe('#views.create', async () => {
-  it('should allow creating a view record for document', async () => {
+describe("#views.create", async () => {
+  it("should allow creating a view record for document", async () => {
     const { user, document } = await seed();
-    const res = await server.post('/api/views.create', {
-      body: { token: user.getJwtToken(), id: document.id },
+    const res = await server.post("/api/views.create", {
+      body: { token: user.getJwtToken(), documentId: document.id },
     });
     const body = await res.json();
 
     expect(res.status).toEqual(200);
-    expect(body.success).toBe(true);
+    expect(body.data.count).toBe(1);
   });
 
-  it('should require authentication', async () => {
+  it("should allow creating a view record for document in read-only collection", async () => {
+    const { user, document, collection } = await seed();
+    collection.private = true;
+    await collection.save();
+
+    await CollectionUser.create({
+      createdById: user.id,
+      collectionId: collection.id,
+      userId: user.id,
+      permission: "read",
+    });
+
+    const res = await server.post("/api/views.create", {
+      body: { token: user.getJwtToken(), documentId: document.id },
+    });
+    const body = await res.json();
+
+    expect(res.status).toEqual(200);
+    expect(body.data.count).toBe(1);
+  });
+
+  it("should require authentication", async () => {
     const { document } = await seed();
-    const res = await server.post('/api/views.create', {
-      body: { id: document.id },
+    const res = await server.post("/api/views.create", {
+      body: { documentId: document.id },
     });
     const body = await res.json();
 
@@ -62,11 +114,11 @@ describe('#views.create', async () => {
     expect(body).toMatchSnapshot();
   });
 
-  it('should require authorization', async () => {
+  it("should require authorization", async () => {
     const { document } = await seed();
     const user = await buildUser();
-    const res = await server.post('/api/views.create', {
-      body: { token: user.getJwtToken(), id: document.id },
+    const res = await server.post("/api/views.create", {
+      body: { token: user.getJwtToken(), documentId: document.id },
     });
     expect(res.status).toEqual(403);
   });

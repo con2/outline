@@ -1,80 +1,34 @@
 // @flow
-import * as React from 'react';
-import { observable, action } from 'mobx';
-import { observer } from 'mobx-react';
-import Waypoint from 'react-waypoint';
-
-import { DEFAULT_PAGINATION_LIMIT } from 'stores/DocumentsStore';
-import Document from 'models/Document';
-import DocumentList from 'components/DocumentList';
-import { ListPlaceholder } from 'components/LoadingPlaceholder';
+import * as React from "react";
+import { observer } from "mobx-react";
+import Document from "models/Document";
+import DocumentPreview from "components/DocumentPreview";
+import PaginatedList from "components/PaginatedList";
 
 type Props = {
-  showCollection?: boolean,
   documents: Document[],
-  fetch: (options: ?Object) => Promise<*>,
+  fetch: (options: ?Object) => Promise<void>,
   options?: Object,
+  heading?: React.Node,
+  empty?: React.Node,
 };
 
 @observer
 class PaginatedDocumentList extends React.Component<Props> {
-  @observable isLoaded: boolean = false;
-  @observable isFetching: boolean = false;
-  @observable offset: number = 0;
-  @observable allowLoadMore: boolean = true;
-
-  componentDidMount() {
-    this.fetchResults();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.fetch !== this.props.fetch) {
-      this.fetchResults();
-    }
-  }
-
-  fetchResults = async () => {
-    this.isFetching = true;
-
-    const limit = DEFAULT_PAGINATION_LIMIT;
-    const results = await this.props.fetch({
-      limit,
-      offset: this.offset,
-      ...this.props.options,
-    });
-
-    if (
-      results &&
-      (results.length === 0 || results.length < DEFAULT_PAGINATION_LIMIT)
-    ) {
-      this.allowLoadMore = false;
-    } else {
-      this.offset += DEFAULT_PAGINATION_LIMIT;
-    }
-
-    this.isLoaded = true;
-    this.isFetching = false;
-  };
-
-  @action
-  loadMoreResults = async () => {
-    // Don't paginate if there aren't more results or we’re in the middle of fetching
-    if (!this.allowLoadMore || this.isFetching) return;
-    await this.fetchResults();
-  };
-
   render() {
-    const { showCollection, documents } = this.props;
+    const { empty, heading, documents, fetch, options, ...rest } = this.props;
 
-    return this.isLoaded || documents.length ? (
-      <React.Fragment>
-        <DocumentList documents={documents} showCollection={showCollection} />
-        {this.allowLoadMore && (
-          <Waypoint key={this.offset} onEnter={this.loadMoreResults} />
+    return (
+      <PaginatedList
+        items={documents}
+        empty={empty}
+        heading={heading}
+        fetch={fetch}
+        options={options}
+        renderItem={item => (
+          <DocumentPreview key={item.id} document={item} {...rest} />
         )}
-      </React.Fragment>
-    ) : (
-      <ListPlaceholder count={5} />
+      />
     );
   }
 }
