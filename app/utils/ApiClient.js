@@ -1,7 +1,6 @@
 // @flow
-import pkg from "rich-markdown-editor/package.json";
-import { map, trim } from "lodash";
 import invariant from "invariant";
+import { map, trim } from "lodash";
 import stores from "stores";
 import download from "./download";
 import {
@@ -29,11 +28,13 @@ class ApiClient {
   fetch = async (
     path: string,
     method: string,
-    data: ?Object,
+    data: ?Object | FormData | void,
     options: Object = {}
   ) => {
     let body;
     let modifiedPath;
+    let urlToFetch;
+    let isJson;
 
     if (method === "GET") {
       if (data) {
@@ -42,17 +43,40 @@ class ApiClient {
         modifiedPath = path;
       }
     } else if (method === "POST" || method === "PUT") {
-      body = data ? JSON.stringify(data) : undefined;
+      body = data || undefined;
+
+      // Only stringify data if its a normal object and
+      // not if it's [object FormData], in addition to
+      // toggling Content-Type to application/json
+      if (
+        typeof data === "object" &&
+        (data || "").toString() === "[object Object]"
+      ) {
+        isJson = true;
+        body = JSON.stringify(data);
+      }
     }
 
-    // Construct headers
-    const headers = new Headers({
+    if (path.match(/^http/)) {
+      urlToFetch = modifiedPath || path;
+    } else {
+      urlToFetch = this.baseUrl + (modifiedPath || path);
+    }
+
+    let headerOptions: any = {
       Accept: "application/json",
-      "Content-Type": "application/json",
       "cache-control": "no-cache",
-      "x-editor-version": pkg.version,
+      "x-editor-version": EDITOR_VERSION,
       pragma: "no-cache",
-    });
+    };
+    // for multipart forms or other non JSON requests fetch
+    // populates the Content-Type without needing to explicitly
+    // set it.
+    if (isJson) {
+      headerOptions["Content-Type"] = "application/json";
+    }
+    const headers = new Headers(headerOptions);
+
     if (stores.auth.authenticated) {
       invariant(stores.auth.token, "JWT token not set properly");
       headers.set("Authorization", `Bearer ${stores.auth.token}`);
@@ -60,7 +84,7 @@ class ApiClient {
 
     let response;
     try {
-      response = await fetch(this.baseUrl + (modifiedPath || path), {
+      response = await fetch(urlToFetch, {
         method,
         body,
         headers,

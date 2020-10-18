@@ -1,28 +1,35 @@
 // @flow
-import * as React from "react";
+import distanceInWordsToNow from "date-fns/distance_in_words_to_now";
 import invariant from "invariant";
-import { withRouter } from "react-router-dom";
-import type { Location, RouterHistory } from "react-router-dom";
+import { deburr, sortBy } from "lodash";
 import { observable } from "mobx";
 import { observer, inject } from "mobx-react";
-import { matchDocumentEdit, updateDocumentUrl } from "utils/routeHelpers";
-import DocumentComponent from "./Document";
-import Revision from "models/Revision";
-import Document from "models/Document";
-import SocketPresence from "./SocketPresence";
-import Loading from "./Loading";
-import HideSidebar from "./HideSidebar";
-import Error404 from "scenes/Error404";
-import ErrorOffline from "scenes/ErrorOffline";
+import * as React from "react";
+import type { RouterHistory, Match } from "react-router-dom";
+import { withRouter } from "react-router-dom";
+import parseDocumentSlug from "shared/utils/parseDocumentSlug";
 import DocumentsStore from "stores/DocumentsStore";
 import PoliciesStore from "stores/PoliciesStore";
 import RevisionsStore from "stores/RevisionsStore";
+import SharesStore from "stores/SharesStore";
 import UiStore from "stores/UiStore";
-import { OfflineError } from "utils/errors";
+import Document from "models/Document";
+import Revision from "models/Revision";
+import Error404 from "scenes/Error404";
+import ErrorOffline from "scenes/ErrorOffline";
+import DocumentComponent from "./Document";
+import HideSidebar from "./HideSidebar";
+import Loading from "./Loading";
+import SocketPresence from "./SocketPresence";
+import { type LocationWithState } from "types";
+import { NotFoundError, OfflineError } from "utils/errors";
+import isInternalUrl from "utils/isInternalUrl";
+import { matchDocumentEdit, updateDocumentUrl } from "utils/routeHelpers";
 
 type Props = {|
-  match: Object,
-  location: Location,
+  match: Match,
+  location: LocationWithState,
+  shares: SharesStore,
   documents: DocumentsStore,
   policies: PoliciesStore,
   revisions: RevisionsStore,
@@ -47,7 +54,8 @@ class DataLoader extends React.Component<Props> {
     // reload from the server otherwise the UI will not know which authorizations
     // the user has
     if (this.document) {
-      const policy = this.props.policies.get(this.document.id);
+      const document = this.document;
+      const policy = this.props.policies.get(document.id);
 
       if (!policy && !this.error) {
         this.loadDocument();
@@ -61,25 +69,55 @@ class DataLoader extends React.Component<Props> {
     }
   }
 
-  goToDocumentCanonical = () => {
-    if (this.document) {
-      this.props.history.push(this.document.url);
-    }
-  };
-
   get isEditing() {
     return this.props.match.path === matchDocumentEdit;
   }
 
   onSearchLink = async (term: string) => {
-    const results = await this.props.documents.search(term);
+    if (isInternalUrl(term)) {
+      // search for exact internal document
+      const slug = parseDocumentSlug(term);
+      try {
+        const document = await this.props.documents.fetch(slug);
+        const time = distanceInWordsToNow(document.updatedAt, {
+          addSuffix: true,
+        });
+        return [
+          {
+            title: document.title,
+            subtitle: `Updated ${time}`,
+            url: document.url,
+          },
+        ];
+      } catch (error) {
+        // NotFoundError could not find document for slug
+        if (!(error instanceof NotFoundError)) {
+          throw error;
+        }
+      }
+    }
 
-    return results
-      .filter(result => result.document.title)
-      .map((result, index) => ({
-        title: result.document.title,
-        url: result.document.url,
-      }));
+    // default search for anything that doesn't look like a URL
+    const results = await this.props.documents.searchTitles(term);
+
+    return sortBy(
+      results.map((document) => {
+        const time = distanceInWordsToNow(document.updatedAt, {
+          addSuffix: true,
+        });
+        return {
+          title: document.title,
+          subtitle: `Updated ${time}`,
+          url: document.url,
+        };
+      }),
+      (document) =>
+        deburr(document.title)
+          .toLowerCase()
+          .startsWith(deburr(term).toLowerCase())
+          ? -1
+          : 1
+    );
   };
 
   onCreateLink = async (title: string) => {
@@ -104,6 +142,11 @@ class DataLoader extends React.Component<Props> {
   loadDocument = async () => {
     const { shareId, documentSlug, revisionId } = this.props.match.params;
 
+    // sets the document as active in the sidebar if we already have it loaded
+    if (this.document) {
+      this.props.ui.setActiveDocument(this.document);
+    }
+
     try {
       this.document = await this.props.documents.fetch(documentSlug, {
         shareId,
@@ -122,10 +165,27 @@ class DataLoader extends React.Component<Props> {
     const document = this.document;
 
     if (document) {
+      const can = this.props.policies.abilities(document.id);
+
+      // sets the document as active in the sidebar, ideally in the future this
+      // will be route driven.
       this.props.ui.setActiveDocument(document);
 
-      if (document.isArchived && this.isEditing) {
-        return this.goToDocumentCanonical();
+      // If we're attempting to update an archived, deleted, or otherwise
+      // uneditable document then forward to the canonical read url.
+      if (!can.update && this.isEditing) {
+        this.props.history.push(document.url);
+        return;
+      }
+
+      // Prevents unauthorized request to load share information for the document
+      // when viewing a public share link
+      if (can.read) {
+        this.props.shares.fetch(document.id).catch((err) => {
+          if (!(err instanceof NotFoundError)) {
+            throw err;
+          }
+        });
       }
 
       const isMove = this.props.location.pathname.match(/move$/);
@@ -158,10 +218,10 @@ class DataLoader extends React.Component<Props> {
 
     if (!document) {
       return (
-        <React.Fragment>
+        <>
           <Loading location={location} />
           {this.isEditing && <HideSidebar ui={ui} />}
-        </React.Fragment>
+        </>
       );
     }
 
@@ -177,7 +237,7 @@ class DataLoader extends React.Component<Props> {
           revision={revision}
           abilities={abilities}
           location={location}
-          readOnly={!this.isEditing}
+          readOnly={!this.isEditing || !abilities.update || document.isArchived}
           onSearchLink={this.onSearchLink}
           onCreateLink={this.onCreateLink}
         />
@@ -187,5 +247,12 @@ class DataLoader extends React.Component<Props> {
 }
 
 export default withRouter(
-  inject("ui", "auth", "documents", "revisions", "policies")(DataLoader)
+  inject(
+    "ui",
+    "auth",
+    "documents",
+    "revisions",
+    "policies",
+    "shares"
+  )(DataLoader)
 );

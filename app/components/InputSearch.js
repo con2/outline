@@ -1,17 +1,18 @@
 // @flow
+import { observable } from "mobx";
+import { observer } from "mobx-react";
+import { SearchIcon } from "outline-icons";
 import * as React from "react";
 import keydown from "react-keydown";
-import { observer } from "mobx-react";
-import { observable } from "mobx";
 import { withRouter, type RouterHistory } from "react-router-dom";
 import styled, { withTheme } from "styled-components";
-import { SearchIcon } from "outline-icons";
-import { searchUrl } from "utils/routeHelpers";
 import Input from "./Input";
+import { searchUrl } from "utils/routeHelpers";
 
 type Props = {
   history: RouterHistory,
   theme: Object,
+  source: string,
   placeholder?: string,
   collectionId?: string,
 };
@@ -30,10 +31,13 @@ class InputSearch extends React.Component<Props> {
     }
   }
 
-  handleSearchInput = ev => {
+  handleSearchInput = (ev) => {
     ev.preventDefault();
     this.props.history.push(
-      searchUrl(ev.target.value, this.props.collectionId)
+      searchUrl(ev.target.value, {
+        collectionId: this.props.collectionId,
+        ref: this.props.source,
+      })
     );
   };
 
@@ -50,7 +54,7 @@ class InputSearch extends React.Component<Props> {
 
     return (
       <InputMaxWidth
-        ref={ref => (this.input = ref)}
+        ref={(ref) => (this.input = ref)}
         type="search"
         placeholder={placeholder}
         onInput={this.handleSearchInput}

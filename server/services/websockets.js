@@ -1,5 +1,7 @@
 // @flow
+import subHours from "date-fns/sub_hours";
 import type { Event } from "../events";
+import { socketio } from "../main";
 import {
   Document,
   Collection,
@@ -7,13 +9,13 @@ import {
   CollectionGroup,
   GroupUser,
 } from "../models";
-import { socketio } from "../";
 import { Op } from "../sequelize";
-import subHours from "date-fns/sub_hours";
 
 export default class Websockets {
   async on(event: Event) {
-    if (process.env.WEBSOCKETS_ENABLED !== "true" || !socketio) return;
+    if (!socketio) {
+      return;
+    }
 
     switch (event.name) {
       case "documents.publish":
@@ -24,22 +26,24 @@ export default class Websockets {
           paranoid: false,
         });
 
-        return socketio
-          .to(`collection-${document.collectionId}`)
-          .emit("entities", {
-            event: event.name,
-            documentIds: [
-              {
-                id: document.id,
-                updatedAt: document.updatedAt,
-              },
-            ],
-            collectionIds: [
-              {
-                id: document.collectionId,
-              },
-            ],
-          });
+        const channel = document.publishedAt
+          ? `collection-${document.collectionId}`
+          : `user-${event.actorId}`;
+
+        return socketio.to(channel).emit("entities", {
+          event: event.name,
+          documentIds: [
+            {
+              id: document.id,
+              updatedAt: document.updatedAt,
+            },
+          ],
+          collectionIds: [
+            {
+              id: document.collectionId,
+            },
+          ],
+        });
       }
       case "documents.delete": {
         const document = await Document.findByPk(event.documentId, {
@@ -82,17 +86,19 @@ export default class Websockets {
           paranoid: false,
         });
 
-        return socketio
-          .to(`collection-${document.collectionId}`)
-          .emit("entities", {
-            event: event.name,
-            documentIds: [
-              {
-                id: document.id,
-                updatedAt: document.updatedAt,
-              },
-            ],
-          });
+        const channel = document.publishedAt
+          ? `collection-${document.collectionId}`
+          : `user-${event.actorId}`;
+
+        return socketio.to(channel).emit("entities", {
+          event: event.name,
+          documentIds: [
+            {
+              id: document.id,
+              updatedAt: document.updatedAt,
+            },
+          ],
+        });
       }
       case "documents.create": {
         const document = await Document.findByPk(event.documentId);
@@ -125,7 +131,7 @@ export default class Websockets {
           },
           paranoid: false,
         });
-        documents.forEach(document => {
+        documents.forEach((document) => {
           socketio.to(`collection-${document.collectionId}`).emit("entities", {
             event: event.name,
             documentIds: [
@@ -136,7 +142,7 @@ export default class Websockets {
             ],
           });
         });
-        event.data.collectionIds.forEach(collectionId => {
+        event.data.collectionIds.forEach((collectionId) => {
           socketio.to(`collection-${collectionId}`).emit("entities", {
             event: event.name,
             collectionIds: [{ id: collectionId }],

@@ -1,16 +1,16 @@
 // @flow
+import format from "date-fns/format";
+import { MoreIcon } from "outline-icons";
 import * as React from "react";
 import { NavLink } from "react-router-dom";
 import styled, { withTheme } from "styled-components";
-import format from "date-fns/format";
-import { MoreIcon } from "outline-icons";
 
-import Flex from "shared/components/Flex";
-import Time from "shared/components/Time";
-import Avatar from "components/Avatar";
-import RevisionMenu from "menus/RevisionMenu";
 import Document from "models/Document";
 import Revision from "models/Revision";
+import Avatar from "components/Avatar";
+import Flex from "components/Flex";
+import Time from "components/Time";
+import RevisionMenu from "menus/RevisionMenu";
 
 import { documentHistoryUrl } from "utils/routeHelpers";
 
@@ -36,7 +36,7 @@ class RevisionListItem extends React.Component<Props> {
           {revision.createdBy.name}
         </Author>
         <Meta>
-          <Time dateTime={revision.createdAt}>
+          <Time dateTime={revision.createdAt} tooltipDelay={250}>
             {format(revision.createdAt, "MMMM Do, YYYY h:mm a")}
           </Time>
         </Meta>
@@ -66,7 +66,7 @@ const StyledRevisionMenu = styled(RevisionMenu)`
 `;
 
 const StyledNavLink = styled(NavLink)`
-  color: ${props => props.theme.text};
+  color: ${(props) => props.theme.text};
   display: block;
   padding: 8px 16px;
   font-size: 15px;

@@ -1,4 +1,5 @@
 // @flow
+import queryString from "query-string";
 import Document from "models/Document";
 
 export function homeUrl(): string {
@@ -23,7 +24,7 @@ export function documentUrl(doc: Document): string {
   return doc.url;
 }
 
-export function documentEditUrl(doc: Document): string {
+export function editDocumentUrl(doc: Document): string {
   return `${doc.url}/edit`;
 }
 
@@ -53,25 +54,31 @@ export function updateDocumentUrl(oldUrl: string, newUrl: string): string {
 
 export function newDocumentUrl(
   collectionId: string,
-  parentDocumentId?: string
-): string {
-  let route = `/collections/${collectionId}/new`;
-
-  if (parentDocumentId) {
-    route += `?parentDocumentId=${parentDocumentId}`;
+  params?: {
+    parentDocumentId?: string,
+    templateId?: string,
+    template?: boolean,
   }
-
-  return route;
+): string {
+  return `/collections/${collectionId}/new?${queryString.stringify(params)}`;
 }
 
-export function searchUrl(query?: string, collectionId?: string): string {
-  let route = "/search";
-  if (query) route += `/${encodeURIComponent(query)}`;
-
-  if (collectionId) {
-    route += `?collectionId=${collectionId}`;
+export function searchUrl(
+  query?: string,
+  params?: {
+    collectionId?: string,
+    ref?: string,
   }
-  return route;
+): string {
+  let search = queryString.stringify(params);
+  let route = "/search";
+
+  if (query) {
+    route += `/${encodeURIComponent(query)}`;
+  }
+
+  search = search ? `?${search}` : "";
+  return `${route}${search}`;
 }
 
 export function notFoundUrl(): string {

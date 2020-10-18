@@ -1,16 +1,16 @@
 // @flow
-import * as React from "react";
 import { observable } from "mobx";
 import { inject, observer } from "mobx-react";
-import Input from "components/Input";
-import InputRich from "components/InputRich";
+import * as React from "react";
+import UiStore from "stores/UiStore";
+import Collection from "models/Collection";
 import Button from "components/Button";
-import Switch from "components/Switch";
-import Flex from "shared/components/Flex";
+import Flex from "components/Flex";
 import HelpText from "components/HelpText";
 import IconPicker from "components/IconPicker";
-import Collection from "models/Collection";
-import UiStore from "stores/UiStore";
+import Input from "components/Input";
+import InputRich from "components/InputRich";
+import Switch from "components/Switch";
 
 type Props = {
   collection: Collection,
@@ -20,20 +20,12 @@ type Props = {
 
 @observer
 class CollectionEdit extends React.Component<Props> {
-  @observable name: string;
-  @observable description: string = "";
-  @observable icon: string = "";
-  @observable color: string = "#4E5C6E";
+  @observable name: string = this.props.collection.name;
+  @observable description: string = this.props.collection.description;
+  @observable icon: string = this.props.collection.icon;
+  @observable color: string = this.props.collection.color || "#4E5C6E";
+  @observable private: boolean = this.props.collection.private;
   @observable isSaving: boolean;
-  @observable private: boolean = false;
-
-  componentDidMount() {
-    this.name = this.props.collection.name;
-    this.description = this.props.collection.description;
-    this.icon = this.props.collection.icon;
-    this.color = this.props.collection.color;
-    this.private = this.props.collection.private;
-  }
 
   handleSubmit = async (ev: SyntheticEvent<*>) => {
     ev.preventDefault();
@@ -56,7 +48,7 @@ class CollectionEdit extends React.Component<Props> {
     }
   };
 
-  handleDescriptionChange = getValue => {
+  handleDescriptionChange = (getValue) => {
     this.description = getValue();
   };
 

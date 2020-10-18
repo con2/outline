@@ -1,16 +1,16 @@
 // @flow
-import bodyParser from "koa-bodyparser";
-import Koa from "koa";
-import Router from "koa-router";
-import validation from "../middlewares/validation";
-import auth from "../middlewares/authentication";
 import addMonths from "date-fns/add_months";
+import Koa from "koa";
+import bodyParser from "koa-body";
+import Router from "koa-router";
+import auth from "../middlewares/authentication";
+import validation from "../middlewares/validation";
 import { Team } from "../models";
-import { getCookieDomain } from "../../shared/utils/domains";
+import { getCookieDomain } from "../utils/domains";
 
-import slack from "./slack";
-import google from "./google";
 import email from "./email";
+import google from "./google";
+import slack from "./slack";
 import local from "./local";
 import kompassi from "./kompassi";
 
@@ -23,7 +23,7 @@ router.use("/", email.routes());
 router.use("/", local.routes());
 router.use("/", kompassi.routes());
 
-router.get("/redirect", auth(), async ctx => {
+router.get("/redirect", auth(), async (ctx) => {
   const user = ctx.state.user;
 
   // transfer access token cookie from root to subdomain

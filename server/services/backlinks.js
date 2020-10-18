@@ -2,7 +2,7 @@
 import { difference } from "lodash";
 import type { DocumentEvent } from "../events";
 import { Document, Revision, Backlink } from "../models";
-import parseDocumentIds from "../../shared/utils/parseDocumentIds";
+import parseDocumentIds from "../utils/parseDocumentIds";
 import slugify from "../utils/slugify";
 
 export default class Backlinks {
@@ -13,7 +13,7 @@ export default class Backlinks {
         const linkIds = parseDocumentIds(document.text);
 
         await Promise.all(
-          linkIds.map(async linkId => {
+          linkIds.map(async (linkId) => {
             const linkedDocument = await Document.findByPk(linkId);
             if (linkedDocument.id === event.documentId) return;
 
@@ -44,6 +44,14 @@ export default class Backlinks {
           order: [["createdAt", "desc"]],
           limit: 2,
         });
+
+        // before parsing document text we must make sure it's been migrated to
+        // the latest version or the parser may fail on version differences
+        await currentRevision.migrateVersion();
+        if (previousRevision) {
+          await previousRevision.migrateVersion();
+        }
+
         const previousLinkIds = previousRevision
           ? parseDocumentIds(previousRevision.text)
           : [];
@@ -53,9 +61,11 @@ export default class Backlinks {
 
         // add any new backlinks that were created
         await Promise.all(
-          addedLinkIds.map(async linkId => {
+          addedLinkIds.map(async (linkId) => {
             const linkedDocument = await Document.findByPk(linkId);
-            if (linkedDocument.id === event.documentId) return;
+            if (!linkedDocument || linkedDocument.id === event.documentId) {
+              return;
+            }
 
             await Backlink.findOrCreate({
               where: {
@@ -71,7 +81,7 @@ export default class Backlinks {
 
         // delete any backlinks that were removed
         await Promise.all(
-          removedLinkIds.map(async linkId => {
+          removedLinkIds.map(async (linkId) => {
             const document = await Document.findByPk(linkId, {
               paranoid: false,
             });
@@ -102,7 +112,7 @@ export default class Backlinks {
         });
 
         await Promise.all(
-          backlinks.map(async backlink => {
+          backlinks.map(async (backlink) => {
             const previousUrl = `/doc/${slugify(previousRevision.title)}-${
               document.urlId
             }`;

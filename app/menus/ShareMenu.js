@@ -1,14 +1,14 @@
 // @flow
+import { observable } from "mobx";
+import { inject, observer } from "mobx-react";
 import * as React from "react";
 import { Redirect } from "react-router-dom";
-import { inject, observer } from "mobx-react";
-import { observable } from "mobx";
 
-import CopyToClipboard from "components/CopyToClipboard";
-import { DropdownMenu, DropdownMenuItem } from "components/DropdownMenu";
 import SharesStore from "stores/SharesStore";
 import UiStore from "stores/UiStore";
 import Share from "models/Share";
+import CopyToClipboard from "components/CopyToClipboard";
+import { DropdownMenu, DropdownMenuItem } from "components/DropdownMenu";
 
 type Props = {
   onOpen?: () => void,
@@ -31,10 +31,15 @@ class ShareMenu extends React.Component<Props> {
     this.redirectTo = this.props.share.documentUrl;
   };
 
-  handleRevoke = (ev: SyntheticEvent<>) => {
+  handleRevoke = async (ev: SyntheticEvent<>) => {
     ev.preventDefault();
-    this.props.shares.revoke(this.props.share);
-    this.props.ui.showToast("Share link revoked");
+
+    try {
+      await this.props.shares.revoke(this.props.share);
+      this.props.ui.showToast("Share link revoked");
+    } catch (err) {
+      this.props.ui.showToast(err.message);
+    }
   };
 
   handleCopy = () => {

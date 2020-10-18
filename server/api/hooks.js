@@ -2,13 +2,20 @@
 import Router from "koa-router";
 import { escapeRegExp } from "lodash";
 import { AuthenticationError, InvalidRequestError } from "../errors";
-import { Authentication, Document, User, Team, Collection } from "../models";
+import {
+  Authentication,
+  Document,
+  User,
+  Team,
+  Collection,
+  SearchQuery,
+} from "../models";
 import { presentSlackAttachment } from "../presenters";
 import * as Slack from "../slack";
 const router = new Router();
 
 // triggered by a user posting a getoutline.com link in Slack
-router.post("hooks.unfurl", async ctx => {
+router.post("hooks.unfurl", async (ctx) => {
   const { challenge, token, event } = ctx.body;
   if (challenge) return (ctx.body = ctx.body.challenge);
 
@@ -49,7 +56,7 @@ router.post("hooks.unfurl", async ctx => {
 });
 
 // triggered by interactions with actions, dialogs, message buttons in Slack
-router.post("hooks.interactive", async ctx => {
+router.post("hooks.interactive", async (ctx) => {
   const { payload } = ctx.body;
   ctx.assertPresent(payload, "payload is required");
 
@@ -98,7 +105,7 @@ router.post("hooks.interactive", async ctx => {
 });
 
 // triggered by the /outline command in Slack
-router.post("hooks.slack", async ctx => {
+router.post("hooks.slack", async (ctx) => {
   const { token, team_id, user_id, text = "" } = ctx.body;
   ctx.assertPresent(token, "token is required");
   ctx.assertPresent(team_id, "team_id is required");
@@ -116,7 +123,7 @@ router.post("hooks.slack", async ctx => {
       attachments: [
         {
           text:
-            "To search your knowledgebase use `/outline keyword`. \nYou’ve already learned how to get help with `/outline help`.",
+            "To search your knowledge base use `/outline keyword`. \nYou’ve already learned how to get help with `/outline help`.",
         },
       ],
     };
@@ -146,9 +153,17 @@ router.post("hooks.slack", async ctx => {
   const options = {
     limit: 5,
   };
-  const results = user
+  const { results, totalCount } = user
     ? await Document.searchForUser(user, text, options)
     : await Document.searchForTeam(team, text, options);
+
+  SearchQuery.create({
+    userId: user ? user.id : null,
+    teamId: team.id,
+    source: "slack",
+    query: text,
+    results: totalCount,
+  });
 
   if (results.length) {
     const attachments = [];

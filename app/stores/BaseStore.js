@@ -1,11 +1,11 @@
 // @flow
 import invariant from "invariant";
-import { observable, set, action, computed, runInAction } from "mobx";
 import { orderBy } from "lodash";
-import { client } from "utils/ApiClient";
+import { observable, set, action, computed, runInAction } from "mobx";
 import RootStore from "stores/RootStore";
 import BaseModel from "../models/BaseModel";
 import type { PaginationParams } from "types";
+import { client } from "utils/ApiClient";
 
 type Action = "list" | "info" | "create" | "update" | "delete";
 
@@ -37,9 +37,9 @@ export default class BaseStore<T: BaseModel> {
     this.data.clear();
   }
 
-  addPolicies = policies => {
+  addPolicies = (policies) => {
     if (policies) {
-      policies.forEach(policy => this.rootStore.policies.add(policy));
+      policies.forEach((policy) => this.rootStore.policies.add(policy));
     }
   };
 
@@ -114,7 +114,7 @@ export default class BaseStore<T: BaseModel> {
   }
 
   @action
-  async delete(item: T, options?: Object = {}) {
+  async delete(item: T, options: Object = {}) {
     if (!this.actions.includes("delete")) {
       throw new Error(`Cannot delete ${this.modelName}`);
     }
@@ -132,7 +132,7 @@ export default class BaseStore<T: BaseModel> {
   }
 
   @action
-  async fetch(id: string, options?: Object = {}): Promise<*> {
+  async fetch(id: string, options: Object = {}): Promise<*> {
     if (!this.actions.includes("info")) {
       throw new Error(`Cannot fetch ${this.modelName}`);
     }

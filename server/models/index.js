@@ -4,16 +4,17 @@ import Attachment from "./Attachment";
 import Authentication from "./Authentication";
 import Backlink from "./Backlink";
 import Collection from "./Collection";
-import CollectionUser from "./CollectionUser";
 import CollectionGroup from "./CollectionGroup";
+import CollectionUser from "./CollectionUser";
 import Document from "./Document";
 import Event from "./Event";
-import Integration from "./Integration";
 import Group from "./Group";
 import GroupUser from "./GroupUser";
+import Integration from "./Integration";
 import Notification from "./Notification";
 import NotificationSetting from "./NotificationSetting";
 import Revision from "./Revision";
+import SearchQuery from "./SearchQuery";
 import Share from "./Share";
 import Star from "./Star";
 import Team from "./Team";
@@ -36,6 +37,7 @@ const models = {
   Notification,
   NotificationSetting,
   Revision,
+  SearchQuery,
   Share,
   Star,
   Team,
@@ -44,7 +46,7 @@ const models = {
 };
 
 // based on https://github.com/sequelize/express-example/blob/master/models/index.js
-Object.keys(models).forEach(modelName => {
+Object.keys(models).forEach((modelName) => {
   if ("associate" in models[modelName]) {
     models[modelName].associate(models);
   }
@@ -66,6 +68,7 @@ export {
   Notification,
   NotificationSetting,
   Revision,
+  SearchQuery,
   Share,
   Star,
   Team,

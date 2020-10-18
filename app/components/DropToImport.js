@@ -1,12 +1,11 @@
 // @flow
-import * as React from "react";
+import invariant from "invariant";
 import { observable } from "mobx";
 import { observer, inject } from "mobx-react";
-import { withRouter, type RouterHistory } from "react-router-dom";
-import { createGlobalStyle } from "styled-components";
-import invariant from "invariant";
-import importFile from "utils/importFile";
+import * as React from "react";
 import Dropzone from "react-dropzone";
+import { withRouter, type RouterHistory, type Match } from "react-router-dom";
+import { createGlobalStyle } from "styled-components";
 import DocumentsStore from "stores/DocumentsStore";
 import LoadingIndicator from "components/LoadingIndicator";
 
@@ -22,7 +21,7 @@ type Props = {
   documents: DocumentsStore,
   disabled: boolean,
   location: Object,
-  match: Object,
+  match: Match,
   history: RouterHistory,
   staticContext: Object,
 };
@@ -30,12 +29,12 @@ type Props = {
 export const GlobalStyles = createGlobalStyle`
   .activeDropZone {
     border-radius: 4px;
-    background: ${props => props.theme.slateDark};
-    svg { fill: ${props => props.theme.white}; }
+    background: ${(props) => props.theme.slateDark};
+    svg { fill: ${(props) => props.theme.white}; }
   }
 
   .activeDropZone a {
-    color: ${props => props.theme.white} !important;
+    color: ${(props) => props.theme.white} !important;
   }
 `;
 
@@ -61,12 +60,12 @@ class DropToImport extends React.Component<Props> {
       }
 
       for (const file of files) {
-        const doc = await importFile({
-          documents: this.props.documents,
+        const doc = await this.props.documents.import(
           file,
           documentId,
           collectionId,
-        });
+          { publish: true }
+        );
 
         if (redirect) {
           this.props.history.push(doc.url);
@@ -95,7 +94,7 @@ class DropToImport extends React.Component<Props> {
 
     return (
       <Dropzone
-        accept="text/markdown, text/plain"
+        accept={documents.importFileTypes.join(", ")}
         onDropAccepted={this.onDropAccepted}
         style={EMPTY_OBJECT}
         disableClick
