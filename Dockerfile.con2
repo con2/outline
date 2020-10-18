@@ -8,4 +8,4 @@ COPY . /usr/src/app
 RUN chmod 755 docker-entrypoint.sh && yarn build
 USER outline
 ENTRYPOINT ["/usr/src/app/docker-entrypoint.sh"]
-CMD ["node", "index.js"]
+CMD ["node", "build/server/index.js"]
