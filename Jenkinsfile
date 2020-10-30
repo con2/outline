@@ -23,7 +23,7 @@ pipeline {
     stage("Deploy") {
       steps {
         script {
-          for (environmentName in environmentMap.get(env.BRANCH_NAME], [])) {
+          for (environmentName in environmentMap.get(env.BRANCH_NAME, [])) {
             sh "emskaffolden -E ${environmentName} -- deploy -n ${namespaceMap[environmentName]} -a build.json"
           }
         }
