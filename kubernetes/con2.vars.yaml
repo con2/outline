@@ -17,8 +17,3 @@ setup_should_run: true
 ingress_letsencrypt_enabled: true
 ingress_letsencrypt_cluster_issuer: letsencrypt-prod
 
-aws_region: eu-west-1
-aws_upload_bucket_url: https://nonexistent.example.com
-aws_upload_bucket_name: nonexistent
-aws_upload_max_size: 262144
-aws_s3_acl: bucket-owner-full-control

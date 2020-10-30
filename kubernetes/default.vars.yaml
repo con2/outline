@@ -51,7 +51,8 @@ aws_s3_acl: bucket-owner-full-control
 
 # Security context for outline and Celery pods
 outline_pod_security_context:
-  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
 outline_container_security_context:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
