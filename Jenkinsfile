@@ -11,12 +11,13 @@ pipeline {
 
   environment {
     PYTHONUNBUFFERED = "1"
+    SKAFFOLD_DEFAULT_REPO = "harbor.con2.fi/con2"
   }
 
   stages {
     stage("Build") {
-      steps
-        sh "emskaffolden -- build --default-repo=harbor.con2.fi/con2 --file-output build.json"
+      steps {
+        sh "emskaffolden -- build --file-output build.json"
       }
     }
 
