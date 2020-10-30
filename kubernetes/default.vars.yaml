@@ -1,0 +1,148 @@
+# Note: If you use Skaffold/Emskaffolden, leave these at defaults and let Skaffold manage the images
+outline_image: outline
+outline_secret_managed: true
+
+# outline_tag: staging
+# outline_repository: harbor.con2.fi/con2/outline
+# outline_image: !Format "{outline_repository}:{outline_tag}"
+# outline_static_image: !Format "{outline_repository}-static:{outline_tag}"
+
+# Set this to the public hostname of your service.
+ingress_public_hostname: outline.localhost
+
+# If you use ingress-nginx and cert-manager, TLS can be automatically configured by setting this to true.
+ingress_letsencrypt_enabled: false
+ingress_letsencrypt_cluster_issuer: letsencrypt-prod
+
+redis_managed: true
+redis_image: redis
+redis_hostname: redis
+redis_database: 1
+redis_storage_pvc: true
+redis_storage_pvc_storageclass: !Void
+
+# NOTE: "managed" PostgreSQL should not be considered production-ready.
+postgres_managed: true
+postgres_image: postgres
+postgres_hostname: postgres
+postgres_username: outline
+postgres_database: outline
+postgres_storage_pvc_storageclass: !Void
+
+# Leave empty if you want to let kubernetes-secret-generator generate one for you
+postgres_password: ''
+
+# note: managed postgres doesn't provide ssl, only enable if using external postgres
+postgres_ssl: false
+
+# Whether or not "yarn sequelize:migrate" should run as init container
+setup_should_run: true
+
+kompassi_base_url: https://kompassi.eu
+
+# TODO
+aws_region: eu-west-1
+aws_upload_bucket_url: https://nonexistent.example.com
+aws_upload_bucket_name: nonexistent
+aws_upload_max_size: 262144
+aws_s3_acl: bucket-owner-full-control
+
+# Configuration vars end here. Configuration snippets follow. May be overridden for advanced configuration.
+
+# Security context for outline and Celery pods
+outline_pod_security_context:
+  runAsNonRoot: true
+outline_container_security_context:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Common environment vars for both outline and celery pods.
+outline_environment:
+  - name: NODE_ENV
+    value: production
+  - name: PORT
+    value: "3000"
+  - name: SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: outline
+        key: secretKey
+  - name: UTILS_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: outline
+        key: utilsSecretKey
+  - name: URL
+    value: !Var ingress_public_hostname
+  - name: REDIS_URL
+    value: !Format "redis://{redis_hostname}/{redis_database}"
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: outline
+        key: awsAccessKeyId
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: outline
+        key: awsSecretAccessKey
+  - name: AWS_REGION
+    value: !Var aws_region
+  - name: AWS_S3_UPLOAD_BUCKET_URL
+    value: !Var aws_upload_bucket_url
+  - name: AWS_S3_UPLOAD_BUCKET_NAME
+    value: !Var aws_upload_bucket_name
+  - name: AWS_S3_UPLOAD_MAX_SIZE
+    value: !Format "{aws_upload_max_size}"
+  - name: AWS_S3_ACL
+    value: !Var aws_s3_acl
+  - name: KOMPASSI_BASE_URL
+    value: !Var kompassi_base_url
+  - name: KOMPASSI_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: outline
+        key: kompassiClientId
+  - name: KOMPASSI_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: outline
+        key: kompassiClientSecret
+  - name: POSTGRES_HOSTNAME
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: hostname
+  - name: POSTGRES_DATABASE
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: database
+  - name: POSTGRES_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: username
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: password
+  - name: POSTGRES_PORT
+    value: "5432"
+  - name: POSTGRES_SSL
+    value: !Format "{postgres_ssl}"
+
+# Default annotations work for nginx ingress with or without LetsEncrypt TLS. Override if you need something else.
+ingress_annotations: !If
+  test: !Var ingress_letsencrypt_enabled
+  then:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+ingress_tls: !If
+  test: !Var ingress_letsencrypt_enabled
+  then:
+    - secretName: ingress-letsencrypt
+      hosts:
+        - !Var ingress_public_hostname

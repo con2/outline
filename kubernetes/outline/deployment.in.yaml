@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outline
+  labels:
+    app.kubernetes.io/part-of: outline
+    app.kubernetes.io/component: server
+    app.kubernetes.io/name: outline
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: outline
+      app.kubernetes.io/component: server
+      app.kubernetes.io/name: outline
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: outline
+        app.kubernetes.io/component: server
+        app.kubernetes.io/name: outline
+    spec:
+      enableServiceLinks: false
+      securityContext: !Var outline_pod_security_context
+      initContainers:
+        - !If
+            test: !Var setup_should_run
+            then:
+              name: setup
+              image: !Var outline_image
+              args: ["yarn", "sequelize:migrate"]
+              env: !Var outline_environment
+              securityContext: !Var outline_container_security_context
+      containers:
+        - name: outline
+          image: !Var outline_image
+          ports:
+            - containerPort: 3000
+          env: !Var outline_environment
+          securityContext: !Var outline_container_security_context
+          readinessProbe:
+            httpGet:
+              path: /api/v3/status
+              port: 3000
+              httpHeaders:
+                - name: Host
+                  value: !Var ingress_public_hostname
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /api/v3/status
+              port: 3000
+              httpHeaders:
+                - name: Host
+                  value: !Var ingress_public_hostname
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          volumeMounts:
+            - mountPath: /home/outline
+              name: outline-temp
+      volumes:
+        - name: outline-temp
+          emptyDir:
+            medium: Memory

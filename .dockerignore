@@ -17,3 +17,4 @@ fakes3
 flow-typed
 node_modules
 setupJest.js
+kubernetes/

@@ -9,3 +9,4 @@ stats.json
 .DS_Store
 fakes3/*
 .idea
+*.compiled.yaml

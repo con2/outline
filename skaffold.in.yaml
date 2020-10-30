@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta6
+kind: Config
+metadata:
+  name: outline
+
+build:
+  local:
+    useBuildkit: true
+  artifacts:
+    - image: outline
+      context: .
+
+deploy:
+  kubectl:
+    manifests:
+      - kubernetes/template.compiled.yaml

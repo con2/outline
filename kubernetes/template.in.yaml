@@ -1,0 +1,65 @@
+# outline deployment using Kubernetes
+# usage: emrichen -f default.vars.yaml kubernetes.in.yaml | kubectl apply -n outline -f -
+
+
+#########
+# REDIS #
+#########
+---
+!If
+  test: !Var redis_managed
+  then: !Include redis/service.in.yaml
+
+---
+!If
+  test: !Var redis_managed
+  then: !Include redis/deployment.in.yaml
+
+---
+!If
+  test: !All [!Var redis_managed, !Var redis_storage_pvc]
+  then: !Include redis/pvc.in.yaml
+
+
+##############
+# POSTGRESQL #
+##############
+---
+!If
+  test: !Var postgres_managed
+  then: !Include postgres/service.in.yaml
+
+---
+!If
+  test: !Var postgres_managed
+  then: !Include postgres/deployment.in.yaml
+
+---
+!If
+  test: !Var postgres_managed
+  then: !Include postgres/pvc.in.yaml
+
+---
+!If
+  test: !Var postgres_managed
+  then: !Include postgres/secret.in.yaml
+
+
+########################
+# OUTLINE (Web server) #
+########################
+---
+!Include outline/service.in.yaml
+---
+!Include outline/deployment.in.yaml
+---
+!If
+  test: !Var outline_secret_managed
+  then: !Include outline/secret.in.yaml
+
+
+###########
+# INGRESS #
+###########
+---
+!Include ingress.in.yaml
