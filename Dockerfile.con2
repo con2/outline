@@ -1,0 +1,5 @@
+ARG UPSTREAM_IMAGE
+FROM $UPSTREAM_IMAGE
+
+ENTRYPOINT ["/opt/outline/docker-entrypoint.sh"]
+CMd ["node", "./build/server/index.js"]

@@ -30,6 +30,11 @@ spec:
               args: ["yarn", "sequelize:migrate"]
               env: !Var outline_environment
               securityContext: !Var outline_container_security_context
+              volumeMounts:
+                - mountPath: /tmp
+                  name: outline-temp
+                - mountPath: /home/outline
+                  name: outline-home
       containers:
         - name: outline
           image: !Var outline_image
@@ -56,9 +61,12 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 30
           volumeMounts:
-            - mountPath: /home/outline
+            - mountPath: /tmp
               name: outline-temp
+            - mountPath: /home/outline
+              name: outline-home
       volumes:
         - name: outline-temp
-          emptyDir:
-            medium: Memory
+          emptyDir: {}
+        - name: outline-home
+          emptyDir: {}

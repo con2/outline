@@ -1,5 +1,5 @@
 # Note: If you use Skaffold/Emskaffolden, leave these at defaults and let Skaffold manage the images
-outline_image: outline
+outline_image: outline-con2
 outline_secret_managed: true
 
 # outline_tag: staging

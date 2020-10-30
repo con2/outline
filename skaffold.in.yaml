@@ -1,4 +1,4 @@
-apiVersion: skaffold/v2beta6
+apiVersion: skaffold/v2beta9
 kind: Config
 metadata:
   name: outline
@@ -9,6 +9,13 @@ build:
   artifacts:
     - image: outline
       context: .
+    - image: outline-con2
+      context: .
+      docker:
+        dockerfile: Dockerfile.con2
+      requires:
+        - image: outline
+          alias: UPSTREAM_IMAGE
 
 deploy:
   kubectl:
