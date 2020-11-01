@@ -19,3 +19,6 @@ ingress_letsencrypt_cluster_issuer: letsencrypt-prod
 
 aws_upload_bucket_url: https://minio.con2.fi
 aws_upload_bucket_name: outline
+
+smtp_hostname: sr1.pahaip.fi
+smtp_from_email: root@tracon.fi
