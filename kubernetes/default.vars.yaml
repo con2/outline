@@ -44,7 +44,7 @@ kompassi_base_url: https://kompassi.eu
 aws_region: eu-west-1
 aws_upload_bucket_url: https://nonexistent.example.com
 aws_upload_bucket_name: nonexistent
-aws_upload_max_size: 262144
+aws_upload_max_size: 26214400
 aws_s3_acl: private
 
 # Configuration vars end here. Configuration snippets follow. May be overridden for advanced configuration.
