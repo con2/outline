@@ -88,7 +88,7 @@ outline_environment:
         name: outline
         key: utilsSecretKey
   - name: URL
-    value: !Var ingress_public_hostname
+    value: !Var ingress_url
   - name: REDIS_URL
     value: !Format "redis://{redis_hostname}/{redis_database}"
   - name: AWS_ACCESS_KEY_ID
@@ -183,3 +183,8 @@ ingress_tls: !If
     - secretName: ingress-letsencrypt
       hosts:
         - !Var ingress_public_hostname
+
+ingress_url: !If
+  test: !Var ingress_tls
+  then: !Format "https://{ingress_public_hostname}"
+  else: !Format "http://{ingress_public_hostname}"
