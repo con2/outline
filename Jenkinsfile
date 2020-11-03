@@ -1,10 +1,11 @@
 def environmentMap = [
-  "con2": ["con2", "kuplii"],
+  "con2": ["con2", "kuplii", "tracon"],
 ]
 
 def namespaceMap = [
   "con2": "outline",
   "kuplii": "outline-kuplii",
+  "tracon": "outline-tracon",
 ]
 
 pipeline {
