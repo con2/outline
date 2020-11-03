@@ -44,6 +44,9 @@ postgres_ssl: false
 setup_should_run: true
 
 kompassi_base_url: https://kompassi.eu
+kompassi_team_name: Con2
+kompassi_access_groups: []
+kompassi_admin_groups: []
 
 # TODO
 aws_region: eu-west-1
@@ -123,6 +126,12 @@ outline_environment:
       secretKeyRef:
         name: outline
         key: kompassiClientSecret
+  - name: KOMPASSI_TEAM_NAME
+    value: !Var kompassi_team_name
+  - name: KOMPASSI_ACCESS_GROUPS
+    value: !Join,Var kompassi_access_groups
+  - name: KOMPASSI_ADMIN_GROUPS
+    value: !Join,Var kompassi_admin_groups
   - name: POSTGRES_HOSTNAME
     valueFrom:
       secretKeyRef:
