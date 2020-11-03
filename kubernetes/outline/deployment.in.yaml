@@ -44,7 +44,7 @@ spec:
           securityContext: !Var outline_container_security_context
           readinessProbe:
             httpGet:
-              path: /api/v3/status
+              path: /_health
               port: 3000
               httpHeaders:
                 - name: Host
@@ -53,7 +53,7 @@ spec:
             periodSeconds: 30
           livenessProbe:
             httpGet:
-              path: /api/v3/status
+              path: /_health
               port: 3000
               httpHeaders:
                 - name: Host
