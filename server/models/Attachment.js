@@ -45,7 +45,9 @@ const Attachment = sequelize.define(
         return `/api/attachments.redirect?id=${this.id}`;
       },
       isPrivate: function () {
-        return this.acl === "private";
+        // CON2: minio doesn't seem to support per-object ACL, so sign all URLs
+        // return this.acl === "private";
+        return true;
       },
     },
   }
