@@ -26,5 +26,7 @@ smtp_from_email: root@tracon.fi
 kompassi_team_name: Tracon
 kompassi_access_groups:
   - turska-tracon2021-labour-conitea
+  - turska-hitpoint2021-labour-conitea
+  - traconry-hallitus-nykyinen
 kompassi_admin_groups:
   - admins
