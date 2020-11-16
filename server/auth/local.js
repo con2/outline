@@ -1,12 +1,12 @@
 // @flow
-import Router from "koa-router";
 import addMonths from "date-fns/add_months";
+import Router from "koa-router";
 import { User, Team, Event } from "../models";
 
 const router = new Router();
 
 if (process.env.LOCAL_AUTH_ENABLED) {
-  router.get("local", async ctx => {
+  router.get("local", async (ctx) => {
     const [team, isFirstUser] = await Team.findOrCreate({
       where: {
         name: "Local",

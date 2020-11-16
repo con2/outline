@@ -10,9 +10,9 @@ import { Team } from "../models";
 
 import email from "./email";
 import google from "./google";
-import slack from "./slack";
-import local from "./local";
 import kompassi from "./kompassi";
+import local from "./local";
+import slack from "./slack";
 
 const app = new Koa();
 const router = new Router();
