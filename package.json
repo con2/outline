@@ -121,7 +121,7 @@
     "mobx-react": "^6.2.5",
     "natural-sort": "^1.0.0",
     "nodemailer": "^4.4.0",
-    "outline-icons": "^1.21.0-6",
+    "outline-icons": "^1.21.0",
     "oy-vey": "^0.10.0",
     "pg": "^8.3.0",
     "pg-hstore": "^2.3.3",
@@ -141,8 +141,10 @@
     "react-modal": "^3.1.2",
     "react-portal": "^4.0.0",
     "react-router-dom": "^5.1.2",
+    "react-virtualized-auto-sizer": "^1.0.2",
     "react-waypoint": "^9.0.2",
-    "rich-markdown-editor": "^11.0.2",
+    "react-window": "^1.8.6",
+    "rich-markdown-editor": "^11.0.6",
     "semver": "^7.3.2",
     "sequelize": "^6.3.4",
     "sequelize-cli": "^6.2.0",
@@ -197,5 +199,5 @@
     "dot-prop": "^5.2.0",
     "js-yaml": "^3.13.1"
   },
-  "version": "0.48.1"
+  "version": "0.50.0"
 }

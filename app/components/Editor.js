@@ -98,7 +98,7 @@ const StyledEditor = styled(RichMarkdownEditor)`
   }
 
   .heading-name {
-    cursor: default;
+    pointer-events: none;
   }
 
   /* pseudo element allows us to add spacing for fixed header */
@@ -110,8 +110,13 @@ const StyledEditor = styled(RichMarkdownEditor)`
     margin: -72px 0 0;
   }
 
-  .heading-anchor {
-    margin-top: 72px !important;
+  .heading-name:first-child {
+    & + h1,
+    & + h2,
+    & + h3,
+    & + h4 {
+      margin-top: 0;
+    }
   }
 
   p {
