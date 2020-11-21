@@ -3,8 +3,11 @@ import Redis from "ioredis";
 
 const options = {
   maxRetriesPerRequest: 20,
+  lazyConnect: true,
   retryStrategy(times) {
-    console.warn(`Retrying redis connection: attempt ${times}`);
+    console.warn(
+      `${new Date().toISOString()} Retrying redis connection: attempt ${times}`
+    );
     return Math.min(times * 100, 3000);
   },
 };
