@@ -155,7 +155,10 @@ outline_environment:
   - name: POSTGRES_PORT
     value: "5432"
   - name: POSTGRES_SSL
-    value: !Format "{postgres_ssl}"
+    value: !If
+      test: !Var postgres_ssl
+      then: "true"
+      else: "false"
   - name: SMTP_HOST
     value: !Var smtp_hostname
   - name: SMTP_PORT
