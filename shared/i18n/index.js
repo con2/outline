@@ -31,11 +31,15 @@ export const initI18n = () => {
   return i18n;
 };
 
+// Note: Updating the available languages? Make sure to also update the
+// locales array in app/components/LocaleTime.js to enable translation for timestamps.
+
 export const languageOptions = [
   { label: "English (US)", value: "en_US" },
   { label: "Deutsch (Deutschland)", value: "de_DE" },
   { label: "Español (España)", value: "es_ES" },
   { label: "Français (France)", value: "fr_FR" },
+  { label: "한국어 (Korean)", value: "ko_KR" },
   { label: "Português (Portugal)", value: "pt_PT" },
 ];
 

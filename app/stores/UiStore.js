@@ -23,7 +23,9 @@ class UiStore {
   @observable editMode: boolean = false;
   @observable tocVisible: boolean = false;
   @observable mobileSidebarVisible: boolean = false;
+  @observable sidebarCollapsed: boolean = false;
   @observable toasts: Map<string, Toast> = new Map();
+  lastToastId: string;
 
   constructor() {
     // Rehydrate
@@ -51,6 +53,7 @@ class UiStore {
 
     // persisted keys
     this.languagePromptDismissed = data.languagePromptDismissed;
+    this.sidebarCollapsed = data.sidebarCollapsed;
     this.tocVisible = data.tocVisible;
     this.theme = data.theme || "system";
 
@@ -108,6 +111,21 @@ class UiStore {
   };
 
   @action
+  collapseSidebar = () => {
+    this.sidebarCollapsed = true;
+  };
+
+  @action
+  expandSidebar = () => {
+    this.sidebarCollapsed = false;
+  };
+
+  @action
+  toggleCollapsedSidebar = () => {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  };
+
+  @action
   showTableOfContents = () => {
     this.tocVisible = true;
   };
@@ -161,9 +179,19 @@ class UiStore {
   ) => {
     if (!message) return;
 
+    const lastToast = this.toasts.get(this.lastToastId);
+    if (lastToast && lastToast.message === message) {
+      this.toasts.set(this.lastToastId, {
+        ...lastToast,
+        reoccurring: lastToast.reoccurring ? ++lastToast.reoccurring : 1,
+      });
+      return;
+    }
+
     const id = v4();
     const createdAt = new Date().toISOString();
     this.toasts.set(id, { message, createdAt, id, ...options });
+    this.lastToastId = id;
     return id;
   };
 
@@ -190,6 +218,7 @@ class UiStore {
   get asJson(): string {
     return JSON.stringify({
       tocVisible: this.tocVisible,
+      sidebarCollapsed: this.sidebarCollapsed,
       languagePromptDismissed: this.languagePromptDismissed,
       theme: this.theme,
     });

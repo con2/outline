@@ -1,16 +1,20 @@
 // @flow
-import { observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
+import { useDrop } from "react-dnd";
+import styled from "styled-components";
 import UiStore from "stores/UiStore";
 import Collection from "models/Collection";
 import Document from "models/Document";
 import CollectionIcon from "components/CollectionIcon";
 import DropToImport from "components/DropToImport";
 import DocumentLink from "./DocumentLink";
+import DropCursor from "./DropCursor";
 import EditableTitle from "./EditableTitle";
 import SidebarLink from "./SidebarLink";
+import useStores from "hooks/useStores";
 import CollectionMenu from "menus/CollectionMenu";
+import CollectionSortMenu from "menus/CollectionSortMenu";
 
 type Props = {|
   collection: Collection,
@@ -20,29 +24,61 @@ type Props = {|
   prefetchDocument: (id: string) => Promise<void>,
 |};
 
-@observer
-class CollectionLink extends React.Component<Props> {
-  @observable menuOpen = false;
+function CollectionLink({
+  collection,
+  activeDocument,
+  prefetchDocument,
+  canUpdate,
+  ui,
+}: Props) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
-  handleTitleChange = async (name: string) => {
-    await this.props.collection.save({ name });
-  };
+  const handleTitleChange = React.useCallback(
+    async (name: string) => {
+      await collection.save({ name });
+    },
+    [collection]
+  );
 
-  render() {
-    const {
-      collection,
-      activeDocument,
-      prefetchDocument,
-      canUpdate,
-      ui,
-    } = this.props;
+  const { documents, policies } = useStores();
+  const expanded = collection.id === ui.activeCollectionId;
+  const manualSort = collection.sort.field === "index";
+  const can = policies.abilities(collection.id);
 
-    const expanded = collection.id === ui.activeCollectionId;
+  // Drop to re-parent
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: "document",
+    drop: (item, monitor) => {
+      if (monitor.didDrop()) return;
+      if (!collection) return;
+      documents.move(item.id, collection.id);
+    },
+    canDrop: (item, monitor) => {
+      return policies.abilities(collection.id).update;
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver({ shallow: true }),
+      canDrop: monitor.canDrop(),
+    }),
+  });
 
-    return (
-      <>
+  // Drop to reorder
+  const [{ isOverReorder }, dropToReorder] = useDrop({
+    accept: "document",
+    drop: async (item, monitor) => {
+      if (!collection) return;
+      documents.move(item.id, collection.id, undefined, 0);
+    },
+    collect: (monitor) => ({
+      isOverReorder: !!monitor.isOver(),
+    }),
+  });
+
+  return (
+    <>
+      <div ref={drop} style={{ position: "relative" }}>
         <DropToImport key={collection.id} collectionId={collection.id}>
-          <SidebarLink
+          <SidebarLinkWithPadding
             key={collection.id}
             to={collection.url}
             icon={
@@ -50,41 +86,62 @@ class CollectionLink extends React.Component<Props> {
             }
             iconColor={collection.color}
             expanded={expanded}
-            menuOpen={this.menuOpen}
+            showActions={menuOpen || expanded}
+            isActiveDrop={isOver && canDrop}
             label={
               <EditableTitle
                 title={collection.name}
-                onSubmit={this.handleTitleChange}
+                onSubmit={handleTitleChange}
                 canUpdate={canUpdate}
               />
             }
             exact={false}
             menu={
-              <CollectionMenu
-                position="right"
-                collection={collection}
-                onOpen={() => (this.menuOpen = true)}
-                onClose={() => (this.menuOpen = false)}
-              />
+              <>
+                {can.update && (
+                  <CollectionSortMenuWithMargin
+                    collection={collection}
+                    onOpen={() => setMenuOpen(true)}
+                    onClose={() => setMenuOpen(false)}
+                  />
+                )}
+                <CollectionMenu
+                  collection={collection}
+                  onOpen={() => setMenuOpen(true)}
+                  onClose={() => setMenuOpen(false)}
+                />
+              </>
             }
-          ></SidebarLink>
+          />
         </DropToImport>
+        {expanded && manualSort && (
+          <DropCursor isActiveDrop={isOverReorder} innerRef={dropToReorder} />
+        )}
+      </div>
 
-        {expanded &&
-          collection.documents.map((node) => (
-            <DocumentLink
-              key={node.id}
-              node={node}
-              collection={collection}
-              activeDocument={activeDocument}
-              prefetchDocument={prefetchDocument}
-              canUpdate={canUpdate}
-              depth={1.5}
-            />
-          ))}
-      </>
-    );
-  }
+      {expanded &&
+        collection.documents.map((node, index) => (
+          <DocumentLink
+            key={node.id}
+            node={node}
+            collection={collection}
+            activeDocument={activeDocument}
+            prefetchDocument={prefetchDocument}
+            canUpdate={canUpdate}
+            depth={1.5}
+            index={index}
+          />
+        ))}
+    </>
+  );
 }
 
-export default CollectionLink;
+const SidebarLinkWithPadding = styled(SidebarLink)`
+  padding-right: 60px;
+`;
+
+const CollectionSortMenuWithMargin = styled(CollectionSortMenu)`
+  margin-right: 4px;
+`;
+
+export default observer(CollectionLink);

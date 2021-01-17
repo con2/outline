@@ -1,11 +1,11 @@
 // @flow
-import "mobx-react-lite/batchingForReactDom";
 import "focus-visible";
 import { Provider } from "mobx-react";
 import * as React from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import { render } from "react-dom";
 import { BrowserRouter as Router } from "react-router-dom";
-
 import { initI18n } from "shared/i18n";
 import stores from "stores";
 import ErrorBoundary from "components/ErrorBoundary";
@@ -21,20 +21,22 @@ const element = document.getElementById("root");
 
 if (element) {
   render(
-    <ErrorBoundary>
-      <Provider {...stores}>
-        <Theme>
-          <Router>
-            <>
-              <ScrollToTop>
-                <Routes />
-              </ScrollToTop>
-              <Toasts />
-            </>
-          </Router>
-        </Theme>
-      </Provider>
-    </ErrorBoundary>,
+    <Provider {...stores}>
+      <Theme>
+        <ErrorBoundary>
+          <DndProvider backend={HTML5Backend}>
+            <Router>
+              <>
+                <ScrollToTop>
+                  <Routes />
+                </ScrollToTop>
+                <Toasts />
+              </>
+            </Router>
+          </DndProvider>
+        </ErrorBoundary>
+      </Theme>
+    </Provider>,
     element
   );
 }

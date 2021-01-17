@@ -67,10 +67,11 @@ class AddGroupsToCollection extends React.Component<Props> {
       this.props.ui.showToast(
         t("{{ groupName }} was added to the collection", {
           groupName: group.name,
-        })
+        }),
+        { type: "success" }
       );
     } catch (err) {
-      this.props.ui.showToast(t("Could not add user"));
+      this.props.ui.showToast(t("Could not add user"), { type: "error" });
       console.error(err);
     }
   };
@@ -92,7 +93,7 @@ class AddGroupsToCollection extends React.Component<Props> {
 
         <Input
           type="search"
-          placeholder={t("Search by group name…")}
+          placeholder={`${t("Search by group name")}…`}
           value={this.query}
           onChange={this.handleFilter}
           label={t("Search groups")}

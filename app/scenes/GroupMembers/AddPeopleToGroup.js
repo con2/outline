@@ -62,10 +62,11 @@ class AddPeopleToGroup extends React.Component<Props> {
         userId: user.id,
       });
       this.props.ui.showToast(
-        t(`{{userName}} was added to the group`, { userName: user.name })
+        t(`{{userName}} was added to the group`, { userName: user.name }),
+        { type: "success" }
       );
     } catch (err) {
-      this.props.ui.showToast(t("Could not add user"));
+      this.props.ui.showToast(t("Could not add user"), { type: "error" });
     }
   };
 
@@ -88,7 +89,7 @@ class AddPeopleToGroup extends React.Component<Props> {
 
         <Input
           type="search"
-          placeholder={t("Search by name…")}
+          placeholder={`${t("Search by name")}…`}
           value={this.query}
           onChange={this.handleFilter}
           label={t("Search people")}
@@ -111,7 +112,6 @@ class AddPeopleToGroup extends React.Component<Props> {
               key={item.id}
               user={item}
               onAdd={() => this.handleAddUser(item)}
-              canEdit
             />
           )}
         />

@@ -12,26 +12,22 @@ type Props = {
   logoUrl: string,
 };
 
-function HeaderBlock({
-  showDisclosure,
-  teamName,
-  subheading,
-  logoUrl,
-  ...rest
-}: Props) {
-  return (
-    <Header justify="flex-start" align="center" {...rest}>
-      <TeamLogo alt={`${teamName} logo`} src={logoUrl} size="38px" />
-      <Flex align="flex-start" column>
-        <TeamName showDisclosure>
-          {teamName}{" "}
-          {showDisclosure && <StyledExpandedIcon color="currentColor" />}
-        </TeamName>
-        <Subheading>{subheading}</Subheading>
-      </Flex>
-    </Header>
-  );
-}
+const HeaderBlock = React.forwardRef<Props, any>(
+  ({ showDisclosure, teamName, subheading, logoUrl, ...rest }: Props, ref) => {
+    return (
+      <Header justify="flex-start" align="center" ref={ref} {...rest}>
+        <TeamLogo alt={`${teamName} logo`} src={logoUrl} size="38px" />
+        <Flex align="flex-start" column>
+          <TeamName showDisclosure>
+            {teamName}{" "}
+            {showDisclosure && <StyledExpandedIcon color="currentColor" />}
+          </TeamName>
+          <Subheading>{subheading}</Subheading>
+        </Flex>
+      </Header>
+    );
+  }
+);
 
 const StyledExpandedIcon = styled(ExpandedIcon)`
   position: absolute;
@@ -61,7 +57,7 @@ const Header = styled.button`
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  padding: 16px 24px;
+  padding: 20px 24px;
   position: relative;
   background: none;
   line-height: inherit;
