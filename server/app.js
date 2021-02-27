@@ -23,6 +23,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const isTest = process.env.NODE_ENV === "test";
 
 // Construct scripts CSP based on services in use by this installation
+const defaultSrc = ["'self'"];
 const scriptSrc = [
   "'self'",
   "'unsafe-inline'",
@@ -33,11 +34,9 @@ const scriptSrc = [
 if (env.GOOGLE_ANALYTICS_ID) {
   scriptSrc.push("www.google-analytics.com");
 }
-if (env.SENTRY_DSN) {
-  scriptSrc.push("browser.sentry-cdn.com");
-}
 if (env.CDN_URL) {
   scriptSrc.push(env.CDN_URL);
+  defaultSrc.push(env.CDN_URL);
 }
 
 app.use(compress());
@@ -77,6 +76,11 @@ if (isProduction) {
     // that means no watching, but recompilation on every request
     lazy: false,
 
+    watchOptions: {
+      poll: 1000,
+      ignored: ["node_modules"],
+    },
+
     // public path to bind the middleware to
     // use the same as in webpack
     publicPath: config.output.publicPath,
@@ -110,15 +114,16 @@ if (isProduction) {
 // catch errors in one place, automatically set status and response headers
 onerror(app);
 
-if (process.env.SENTRY_DSN) {
+if (env.SENTRY_DSN) {
   Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.NODE_ENV,
+    dsn: env.SENTRY_DSN,
+    environment: env.ENVIRONMENT,
+    release: env.RELEASE,
     maxBreadcrumbs: 0,
     ignoreErrors: [
       // emitted by Koa when bots attempt to snoop on paths such as wp-admin
-      // or the user submits a bad request. These are expected in normal running
-      // of the application
+      // or the user client submits a bad request. These are expected in normal
+      // running of the application and don't need to be reported.
       "BadRequestError",
       "UnauthorizedError",
     ],
@@ -163,28 +168,26 @@ app.on("error", (error, ctx) => {
 app.use(mount("/auth", auth));
 app.use(mount("/api", api));
 
+// Sets common security headers by default, such as no-sniff, hsts, hide powered
+// by etc
 app.use(helmet());
 app.use(
   contentSecurityPolicy({
     directives: {
-      defaultSrc: ["'self'"],
+      defaultSrc,
       scriptSrc,
       styleSrc: ["'self'", "'unsafe-inline'", "github.githubassets.com"],
       imgSrc: ["*", "data:", "blob:"],
       frameSrc: ["*"],
       connectSrc: ["*"],
-      // Removed because connect-src: self + websockets does not work in Safari
-      // Ref: https://bugs.webkit.org/show_bug.cgi?id=201591
-      // connectSrc: compact([
-      //   "'self'",
-      //   process.env.AWS_S3_UPLOAD_BUCKET_URL.replace("s3:", "localhost:"),
-      //   "www.google-analytics.com",
-      //   "api.github.com",
-      //   "sentry.io",
-      // ]),
+      // Do not use connect-src: because self + websockets does not work in
+      // Safari, ref: https://bugs.webkit.org/show_bug.cgi?id=201591
     },
   })
 );
+
+// Allow DNS prefetching for performance, we do not care about leaking requests
+// to our own CDN's
 app.use(dnsPrefetchControl({ allow: true }));
 app.use(referrerPolicy({ policy: "no-referrer" }));
 app.use(mount(routes));

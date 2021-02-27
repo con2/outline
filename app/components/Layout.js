@@ -1,12 +1,13 @@
 // @flow
 import { observable } from "mobx";
 import { observer, inject } from "mobx-react";
+import { MenuIcon } from "outline-icons";
 import * as React from "react";
 import { Helmet } from "react-helmet";
 import { withTranslation, type TFunction } from "react-i18next";
 import keydown from "react-keydown";
 import { Switch, Route, Redirect } from "react-router-dom";
-import styled, { withTheme } from "styled-components";
+import styled from "styled-components";
 import breakpoint from "styled-components-breakpoint";
 import AuthStore from "stores/AuthStore";
 import DocumentsStore from "stores/DocumentsStore";
@@ -14,14 +15,15 @@ import UiStore from "stores/UiStore";
 import ErrorSuspended from "scenes/ErrorSuspended";
 import KeyboardShortcuts from "scenes/KeyboardShortcuts";
 import Analytics from "components/Analytics";
+import Button from "components/Button";
 import DocumentHistory from "components/DocumentHistory";
 import Flex from "components/Flex";
-
 import { LoadingIndicatorBar } from "components/LoadingIndicator";
 import Modal from "components/Modal";
 import Sidebar from "components/Sidebar";
 import SettingsSidebar from "components/Sidebar/Settings";
-import { type Theme } from "types";
+import SkipNavContent from "components/SkipNavContent";
+import SkipNavLink from "components/SkipNavLink";
 import { meta } from "utils/keyboard";
 import {
   homeUrl,
@@ -37,7 +39,6 @@ type Props = {
   auth: AuthStore,
   ui: UiStore,
   notifications?: React.Node,
-  theme: Theme,
   i18n: Object,
   t: TFunction,
 };
@@ -48,22 +49,10 @@ class Layout extends React.Component<Props> {
   @observable redirectTo: ?string;
   @observable keyboardShortcutsOpen: boolean = false;
 
-  constructor(props: Props) {
-    super();
-    this.updateBackground(props);
-  }
-
   componentDidUpdate() {
-    this.updateBackground(this.props);
-
     if (this.redirectTo) {
       this.redirectTo = undefined;
     }
-  }
-
-  updateBackground(props: Props) {
-    // ensure the wider page color always matches the theme
-    window.document.body.style.background = props.theme.background;
   }
 
   @keydown(`${meta}+.`)
@@ -73,7 +62,6 @@ class Layout extends React.Component<Props> {
 
   @keydown("shift+/")
   handleOpenKeyboardShortcuts() {
-    if (this.props.ui.editMode) return;
     this.keyboardShortcutsOpen = true;
   }
 
@@ -83,7 +71,6 @@ class Layout extends React.Component<Props> {
 
   @keydown(["t", "/", `${meta}+k`])
   goToSearch(ev: SyntheticEvent<>) {
-    if (this.props.ui.editMode) return;
     ev.preventDefault();
     ev.stopPropagation();
     this.redirectTo = searchUrl();
@@ -91,7 +78,6 @@ class Layout extends React.Component<Props> {
 
   @keydown("d")
   goToDashboard() {
-    if (this.props.ui.editMode) return;
     this.redirectTo = homeUrl();
   }
 
@@ -99,6 +85,7 @@ class Layout extends React.Component<Props> {
     const { auth, t, ui } = this.props;
     const { user, team } = auth;
     const showSidebar = auth.authenticated && user && team;
+    const sidebarCollapsed = ui.isEditing || ui.sidebarCollapsed;
 
     if (auth.isSuspended) return <ErrorSuspended />;
     if (this.redirectTo) return <Redirect to={this.redirectTo} push />;
@@ -112,10 +99,18 @@ class Layout extends React.Component<Props> {
             content="width=device-width, initial-scale=1.0"
           />
         </Helmet>
+        <SkipNavLink />
         <Analytics />
 
         {this.props.ui.progressBarVisible && <LoadingIndicatorBar />}
         {this.props.notifications}
+
+        <MobileMenuButton
+          onClick={ui.toggleMobileSidebar}
+          icon={<MenuIcon />}
+          iconColor="currentColor"
+          neutral
+        />
 
         <Container auto>
           {showSidebar && (
@@ -125,10 +120,17 @@ class Layout extends React.Component<Props> {
             </Switch>
           )}
 
+          <SkipNavContent />
           <Content
             auto
             justify="center"
-            sidebarCollapsed={ui.editMode || ui.sidebarCollapsed}
+            $isResizing={ui.sidebarIsResizing}
+            $sidebarCollapsed={sidebarCollapsed}
+            style={
+              sidebarCollapsed
+                ? undefined
+                : { marginLeft: `${ui.sidebarWidth}px` }
+            }
           >
             {this.props.children}
           </Content>
@@ -160,22 +162,41 @@ const Container = styled(Flex)`
   min-height: 100%;
 `;
 
+const MobileMenuButton = styled(Button)`
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: ${(props) => props.theme.depths.sidebar - 1};
+
+  ${breakpoint("tablet")`
+    display: none;
+  `};
+
+  @media print {
+    display: none;
+  }
+`;
+
 const Content = styled(Flex)`
   margin: 0;
-  transition: margin-left 100ms ease-out;
+  transition: ${(props) =>
+    props.$isResizing ? "none" : `margin-left 100ms ease-out`};
 
   @media print {
     margin: 0;
   }
 
+  ${breakpoint("mobile", "tablet")`
+    margin-left: 0 !important;
+  `}
+
   ${breakpoint("tablet")`
-    margin-left: ${(props) =>
-      props.sidebarCollapsed
-        ? props.theme.sidebarCollapsedWidth
-        : props.theme.sidebarWidth};
+    ${(props) =>
+      props.$sidebarCollapsed &&
+      `margin-left: ${props.theme.sidebarCollapsedWidth}px;`}
   `};
 `;
 
 export default withTranslation()<Layout>(
-  inject("auth", "ui", "documents")(withTheme(Layout))
+  inject("auth", "ui", "documents")(Layout)
 );

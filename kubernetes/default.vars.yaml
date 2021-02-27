@@ -165,6 +165,10 @@ outline_environment:
     value: !Format "{smtp_port}"
   - name: SMTP_FROM_EMAIL
     value: !Var smtp_from_email
+  - name: FORCE_HTTPS
+    value: "false"
+  - name: ENABLE_UPDATES
+    value: "false"
   - !If
       test: !Var smtp_username
       then:

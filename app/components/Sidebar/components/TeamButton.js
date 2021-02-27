@@ -5,31 +5,36 @@ import styled from "styled-components";
 import Flex from "components/Flex";
 import TeamLogo from "components/TeamLogo";
 
-type Props = {
+type Props = {|
   teamName: string,
   subheading: React.Node,
   showDisclosure?: boolean,
+  onClick: (event: SyntheticEvent<>) => void,
   logoUrl: string,
-};
+|};
 
-const HeaderBlock = React.forwardRef<Props, any>(
-  ({ showDisclosure, teamName, subheading, logoUrl, ...rest }: Props, ref) => {
-    return (
+const TeamButton = React.forwardRef<Props, any>(
+  ({ showDisclosure, teamName, subheading, logoUrl, ...rest }: Props, ref) => (
+    <Wrapper>
       <Header justify="flex-start" align="center" ref={ref} {...rest}>
-        <TeamLogo alt={`${teamName} logo`} src={logoUrl} size="38px" />
+        <TeamLogo
+          alt={`${teamName} logo`}
+          src={logoUrl}
+          width={38}
+          height={38}
+        />
         <Flex align="flex-start" column>
           <TeamName showDisclosure>
-            {teamName}{" "}
-            {showDisclosure && <StyledExpandedIcon color="currentColor" />}
+            {teamName} {showDisclosure && <Disclosure color="currentColor" />}
           </TeamName>
           <Subheading>{subheading}</Subheading>
         </Flex>
       </Header>
-    );
-  }
+    </Wrapper>
+  )
 );
 
-const StyledExpandedIcon = styled(ExpandedIcon)`
+const Disclosure = styled(ExpandedIcon)`
   position: absolute;
   right: 0;
   top: 0;
@@ -40,6 +45,7 @@ const Subheading = styled.div`
   font-size: 11px;
   text-transform: uppercase;
   font-weight: 500;
+  white-space: nowrap;
   color: ${(props) => props.theme.sidebarText};
 `;
 
@@ -49,16 +55,20 @@ const TeamName = styled.div`
   padding-right: 24px;
   font-weight: 600;
   color: ${(props) => props.theme.text};
+  white-space: nowrap;
   text-decoration: none;
   font-size: 16px;
+`;
+
+const Wrapper = styled.div`
+  flex-shrink: 0;
+  overflow: hidden;
 `;
 
 const Header = styled.button`
   display: flex;
   align-items: center;
-  flex-shrink: 0;
   padding: 20px 24px;
-  position: relative;
   background: none;
   line-height: inherit;
   border: 0;
@@ -73,4 +83,4 @@ const Header = styled.button`
   }
 `;
 
-export default HeaderBlock;
+export default TeamButton;

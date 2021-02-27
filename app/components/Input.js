@@ -2,9 +2,10 @@
 import { observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
+import { VisuallyHidden } from "reakit/VisuallyHidden";
 import styled from "styled-components";
+import breakpoint from "styled-components-breakpoint";
 import Flex from "components/Flex";
-import VisuallyHidden from "components/VisuallyHidden";
 
 const RealTextarea = styled.textarea`
   border: 0;
@@ -33,6 +34,10 @@ const RealInput = styled.input`
   &::placeholder {
     color: ${(props) => props.theme.placeholder};
   }
+
+  ${breakpoint("mobile", "tablet")`
+    font-size: 16px;
+  `};
 `;
 
 const Wrapper = styled.div`
@@ -75,8 +80,8 @@ export const LabelText = styled.div`
   display: inline-block;
 `;
 
-export type Props = {
-  type?: string,
+export type Props = {|
+  type?: "text" | "email" | "checkbox" | "search",
   value?: string,
   label?: string,
   className?: string,
@@ -85,9 +90,18 @@ export type Props = {
   short?: boolean,
   margin?: string | number,
   icon?: React.Node,
+  name?: string,
+  minLength?: number,
+  maxLength?: number,
+  autoFocus?: boolean,
+  autoComplete?: boolean | string,
+  readOnly?: boolean,
+  required?: boolean,
+  placeholder?: string,
+  onChange?: (ev: SyntheticInputEvent<HTMLInputElement>) => mixed,
   onFocus?: (ev: SyntheticEvent<>) => void,
   onBlur?: (ev: SyntheticEvent<>) => void,
-};
+|};
 
 @observer
 class Input extends React.Component<Props> {

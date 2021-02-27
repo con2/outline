@@ -19,11 +19,11 @@ import Subheading from "components/Subheading";
 import useCurrentUser from "hooks/useCurrentUser";
 import useStores from "hooks/useStores";
 
-type Props = {
+type Props = {|
   user: User,
   history: RouterHistory,
   onRequestClose: () => void,
-};
+|};
 
 function UserProfile(props: Props) {
   const { t } = useTranslation();
@@ -55,9 +55,9 @@ function UserProfile(props: Props) {
             time: distanceInWordsToNow(new Date(user.createdAt)),
           })}
           {user.isAdmin && (
-            <StyledBadge admin={user.isAdmin}>{t("Admin")}</StyledBadge>
+            <StyledBadge primary={user.isAdmin}>{t("Admin")}</StyledBadge>
           )}
-          {user.isSuspended && <Badge>{t("Suspended")}</Badge>}
+          {user.isSuspended && <StyledBadge>{t("Suspended")}</StyledBadge>}
           {isCurrentUser && (
             <Edit>
               <Button
