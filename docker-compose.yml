@@ -23,7 +23,7 @@ services:
     command: yarn dev
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.con2
       args:
         pull: 1
     ports:
