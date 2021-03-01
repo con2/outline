@@ -1,7 +1,5 @@
 FROM node:14-buster-slim
 
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-
 ENV APP_PATH /opt/outline
 RUN mkdir -p $APP_PATH
 
