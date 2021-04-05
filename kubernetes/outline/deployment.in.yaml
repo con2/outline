@@ -35,6 +35,21 @@ spec:
                   name: outline-temp
                 - mountPath: /home/outline
                   name: outline-home
+        - !If
+            test: !Var setup_should_run
+            then:
+              name: data_migration
+              image: !Var outline_image
+              args:
+                - node
+                - ./build/server/scripts/20210226232041-migrate-authentication.js
+              env: !Var outline_environment
+              securityContext: !Var outline_container_security_context
+              volumeMounts:
+                - mountPath: /tmp
+                  name: outline-temp
+                - mountPath: /home/outline
+                  name: outline-home
       containers:
         - name: outline
           image: !Var outline_image
