@@ -41,7 +41,8 @@ postgres_password: ''
 postgres_ssl: false
 
 # Whether or not "yarn sequelize:migrate" should run as init container
-setup_should_run: true
+outline_setup_should_run: true
+outline_data_migration_should_run: false
 
 kompassi_base_url: https://kompassi.eu
 kompassi_team_name: Con2

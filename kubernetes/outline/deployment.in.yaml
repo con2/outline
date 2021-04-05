@@ -23,7 +23,7 @@ spec:
       securityContext: !Var outline_pod_security_context
       initContainers:
         - !If
-            test: !Var setup_should_run
+            test: !Var outline_setup_should_run
             then:
               name: setup
               image: !Var outline_image
@@ -36,7 +36,7 @@ spec:
                 - mountPath: /home/outline
                   name: outline-home
         - !If
-            test: !Var setup_should_run
+            test: !Var outline_data_migration_should_run
             then:
               name: data-migration
               image: !Var outline_image

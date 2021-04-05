@@ -12,7 +12,7 @@ redis_database: 14
 
 outline_secret_managed: false
 
-setup_should_run: true
+outline_setup_should_run: true
 
 ingress_letsencrypt_enabled: true
 ingress_letsencrypt_cluster_issuer: letsencrypt-prod
