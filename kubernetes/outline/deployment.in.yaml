@@ -38,7 +38,7 @@ spec:
         - !If
             test: !Var setup_should_run
             then:
-              name: data_migration
+              name: data-migration
               image: !Var outline_image
               args:
                 - node
