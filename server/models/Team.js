@@ -92,6 +92,9 @@ const Team = sequelize.define(
           })
         );
       },
+      kompassiId() {
+        return process.env.KOMPASSI_TEAM_NAME;
+      },
     },
   }
 );
