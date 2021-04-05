@@ -233,4 +233,9 @@ router.get("kompassi.callback", auth({ required: false }), async (ctx) => {
   }
 });
 
+export const config = {
+  name: "Kompassi",
+  enabled: !!clientId,
+};
+
 export default router;

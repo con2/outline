@@ -1,7 +1,7 @@
 // @flow
 import path from "path";
 import { DataTypes, sequelize } from "../sequelize";
-import { deleteFromS3 } from "../utils/s3";
+import { deleteFromS3, getFileByKey } from "../utils/s3";
 
 const Attachment = sequelize.define(
   "attachment",
@@ -48,6 +48,9 @@ const Attachment = sequelize.define(
         // CON2: minio doesn't seem to support per-object ACL, so sign all URLs
         // return this.acl === "private";
         return true;
+      },
+      buffer: function () {
+        return getFileByKey(this.key);
       },
     },
   }

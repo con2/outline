@@ -4,6 +4,7 @@ import styled from "styled-components";
 import Image from "components/Image";
 import Abstract from "./Abstract";
 import Airtable from "./Airtable";
+import Cawemo from "./Cawemo";
 import ClickUp from "./ClickUp";
 import Codepen from "./Codepen";
 import Figma from "./Figma";
@@ -62,8 +63,17 @@ export default [
     matcher: matcher(Airtable),
   },
   {
+    title: "Cawemo",
+    keywords: "bpmn process",
+    defaultHidden: true,
+    icon: () => <Img src="/images/cawemo.png" />,
+    component: Cawemo,
+    matcher: matcher(Cawemo),
+  },
+  {
     title: "ClickUp",
     keywords: "project",
+    defaultHidden: true,
     icon: () => <Img src="/images/clickup.png" />,
     component: ClickUp,
     matcher: matcher(ClickUp),
@@ -133,6 +143,7 @@ export default [
   {
     title: "InVision",
     keywords: "design prototype",
+    defaultHidden: true,
     icon: () => <Img src="/images/invision.png" />,
     component: InVision,
     matcher: matcher(InVision),
@@ -175,6 +186,7 @@ export default [
   {
     title: "Mode",
     keywords: "analytics",
+    defaultHidden: true,
     icon: () => <Img src="/images/mode-analytics.png" />,
     component: ModeAnalytics,
     matcher: matcher(ModeAnalytics),

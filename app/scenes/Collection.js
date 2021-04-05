@@ -16,6 +16,7 @@ import CollectionEdit from "scenes/CollectionEdit";
 import CollectionMembers from "scenes/CollectionMembers";
 import Search from "scenes/Search";
 import { Action, Separator } from "components/Actions";
+import Badge from "components/Badge";
 import Button from "components/Button";
 import CenteredContent from "components/CenteredContent";
 import CollectionDescription from "components/CollectionDescription";
@@ -252,13 +253,23 @@ class CollectionScene extends React.Component<Props> {
           <>
             <Heading>
               <CollectionIcon collection={collection} size={40} expanded />{" "}
-              {collection.name}
+              {collection.name}{" "}
+              {collection.private && (
+                <Tooltip
+                  tooltip={t(
+                    "This collection is only visible to people given access"
+                  )}
+                  placement="bottom"
+                >
+                  <Badge>{t("Private")}</Badge>
+                </Tooltip>
+              )}
             </Heading>
             <CollectionDescription collection={collection} />
 
             {hasPinnedDocuments && (
               <>
-                <Subheading>
+                <Subheading sticky>
                   <TinyPinIcon size={18} /> {t("Pinned")}
                 </Subheading>
                 <DocumentList documents={pinnedDocuments} showPin />

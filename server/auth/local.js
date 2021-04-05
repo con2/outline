@@ -61,4 +61,9 @@ if (process.env.LOCAL_AUTH_ENABLED) {
   });
 }
 
+export const config = {
+  name: "Kompassi",
+  enabled: !!process.env.LOCAL_AUTH_ENABLED,
+};
+
 export default router;

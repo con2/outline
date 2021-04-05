@@ -9,6 +9,7 @@ import {
   buildDocument,
 } from "../test/factories";
 import { flushdb, seed } from "../test/support";
+
 const server = new TestServer(app.callback());
 
 beforeEach(() => flushdb());
@@ -106,6 +107,147 @@ describe("#collections.list", () => {
     expect(body.data.length).toEqual(2);
     expect(body.policies.length).toEqual(2);
     expect(body.policies[0].abilities.read).toEqual(true);
+  });
+});
+
+describe("#collections.import", () => {
+  it("should error if no attachmentId is passed", async () => {
+    const user = await buildUser();
+    const res = await server.post("/api/collections.import", {
+      body: {
+        token: user.getJwtToken(),
+      },
+    });
+    expect(res.status).toEqual(400);
+  });
+
+  it("should require authentication", async () => {
+    const res = await server.post("/api/collections.import");
+    const body = await res.json();
+
+    expect(res.status).toEqual(401);
+    expect(body).toMatchSnapshot();
+  });
+});
+
+describe("#collections.move", () => {
+  it("should require authentication", async () => {
+    const res = await server.post("/api/collections.move");
+    const body = await res.json();
+
+    expect(res.status).toEqual(401);
+    expect(body).toMatchSnapshot();
+  });
+
+  it("should require authorization", async () => {
+    const user = await buildUser();
+    const { collection } = await seed();
+
+    const res = await server.post("/api/collections.move", {
+      body: { token: user.getJwtToken(), id: collection.id, index: "P" },
+    });
+
+    expect(res.status).toEqual(403);
+  });
+
+  it("should return success", async () => {
+    const { admin, collection } = await seed();
+    const res = await server.post("/api/collections.move", {
+      body: { token: admin.getJwtToken(), id: collection.id, index: "P" },
+    });
+
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.success).toBe(true);
+  });
+
+  it("if index collision occurs, should updated index of other collection", async () => {
+    const { user, admin, collection } = await seed();
+    const createdCollectionResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "Test",
+          sharing: false,
+          index: "Q",
+        },
+      }
+    );
+
+    await createdCollectionResponse.json();
+    const movedCollectionRes = await server.post("/api/collections.move", {
+      body: { token: admin.getJwtToken(), id: collection.id, index: "Q" },
+    });
+
+    const movedCollection = await movedCollectionRes.json();
+
+    expect(movedCollectionRes.status).toEqual(200);
+    expect(movedCollection.success).toBe(true);
+    expect(movedCollection.data.index).toEqual("h");
+    expect(movedCollection.data.index > "Q").toBeTruthy();
+  });
+
+  it("if index collision with an extra collection, should updated index of other collection", async () => {
+    const { user, admin } = await seed();
+    const createdCollectionAResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "A",
+          sharing: false,
+          index: "a",
+        },
+      }
+    );
+
+    const createdCollectionBResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "B",
+          sharing: false,
+          index: "b",
+        },
+      }
+    );
+
+    const createdCollectionCResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "C",
+          sharing: false,
+          index: "c",
+        },
+      }
+    );
+
+    await createdCollectionAResponse.json();
+    await createdCollectionBResponse.json();
+    const createdCollectionC = await createdCollectionCResponse.json();
+
+    const movedCollectionCResponse = await server.post(
+      "/api/collections.move",
+      {
+        body: {
+          token: admin.getJwtToken(),
+          id: createdCollectionC.data.id,
+          index: "a",
+        },
+      }
+    );
+
+    const movedCollectionC = await movedCollectionCResponse.json();
+
+    expect(movedCollectionCResponse.status).toEqual(200);
+    expect(movedCollectionC.success).toBe(true);
+    expect(movedCollectionC.data.index).toEqual("aP");
+    expect(movedCollectionC.data.index > "a").toBeTruthy();
+    expect(movedCollectionC.data.index < "b").toBeTruthy();
   });
 });
 
@@ -860,7 +1002,7 @@ describe("#collections.create", () => {
   });
 
   it("should create collection", async () => {
-    const { user } = await seed();
+    const user = await buildUser();
     const res = await server.post("/api/collections.create", {
       body: { token: user.getJwtToken(), name: "Test" },
     });
@@ -900,6 +1042,89 @@ describe("#collections.create", () => {
     expect(body.policies.length).toBe(1);
     expect(body.policies[0].abilities.read).toBeTruthy();
     expect(body.policies[0].abilities.export).toBeTruthy();
+  });
+
+  it("if index collision, should updated index of other collection", async () => {
+    const { user } = await seed();
+    const createdCollectionAResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "A",
+          sharing: false,
+          index: "a",
+        },
+      }
+    );
+    await createdCollectionAResponse.json();
+
+    const createCollectionResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "C",
+          sharing: false,
+          index: "a",
+        },
+      }
+    );
+
+    const createdCollection = await createCollectionResponse.json();
+
+    expect(createCollectionResponse.status).toEqual(200);
+    expect(createdCollection.data.index).toEqual("p");
+    expect(createdCollection.data.index > "a").toBeTruthy();
+  });
+
+  it("if index collision with an extra collection, should updated index of other collection", async () => {
+    const { user } = await seed();
+    const createdCollectionAResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "A",
+          sharing: false,
+          index: "a",
+        },
+      }
+    );
+
+    const createdCollectionBResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "B",
+          sharing: false,
+          index: "b",
+        },
+      }
+    );
+
+    await createdCollectionAResponse.json();
+    await createdCollectionBResponse.json();
+
+    const createCollectionResponse = await server.post(
+      "/api/collections.create",
+      {
+        body: {
+          token: user.getJwtToken(),
+          name: "C",
+          sharing: false,
+          index: "a",
+        },
+      }
+    );
+
+    const createdCollection = await createCollectionResponse.json();
+
+    expect(createCollectionResponse.status).toEqual(200);
+    expect(createdCollection.data.index).toEqual("aP");
+    expect(createdCollection.data.index > "a").toBeTruthy();
+    expect(createdCollection.data.index < "b").toBeTruthy();
   });
 });
 
