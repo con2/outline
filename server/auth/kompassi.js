@@ -4,8 +4,9 @@ import fetch from "isomorphic-fetch";
 import Router from "koa-router";
 import Sequelize from "sequelize";
 
+import accountProvisioner from "../commands/accountProvisioner";
 import auth from "../middlewares/authentication";
-import { Event, Group, GroupUser, Team, User } from "../models";
+import { Group, GroupUser } from "../models";
 
 const Op = Sequelize.Op;
 
@@ -18,13 +19,14 @@ const adminGroups = (process.env.KOMPASSI_ADMIN_GROUPS || "").split(/\s+/);
 const teamName = process.env.KOMPASSI_TEAM_NAME || "Con2";
 const tileyBaseUrl = "https://tiley.herokuapp.com/avatar";
 const redirectUri = `${process.env.URL}/auth/kompassi.callback`;
+const scope = "read";
 
 function getAuthUrl() {
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: "read",
+    scope,
     // state: "TODO",
   });
   return `${baseUrl}/oauth2/authorize?${params.toString()}`;
@@ -102,135 +104,78 @@ router.get("kompassi.callback", auth({ required: false }), async (ctx) => {
     adminGroups.includes(groupName)
   );
 
-  const [team, isFirstUser] = await Team.findOrCreate({
-    where: {
+  const result = await accountProvisioner({
+    ip: ctx.request.ip,
+    team: {
       name: teamName,
-    },
-    defaults: {
+      domain: "",
+      subdomain: "",
       avatarUrl: teamAvatarUrl,
+    },
+    user: {
+      name: profile.full_name,
+      email: profile.email,
+      avatarUrl: userAvatarUrl,
+    },
+    authenticationProvider: {
+      name: "kompassi",
+      providerId: process.env.KOMPASSI_TEAM_NAME,
+    },
+    authentication: {
+      providerId: "" + profile.id,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      scopes: scope.split(/\s+/),
     },
   });
 
-  try {
-    const [user, isFirstSignin] = await User.findOrCreate({
+  // update adminship
+  const { user, team, isNewUser } = result;
+  user.isAdmin = isAdmin;
+  user.save();
+
+  // update group membership
+  const groupIds: string[] = [];
+  for (const groupName of groupNames) {
+    // Ensure the groups exist that the user should be member of per Kompassi
+    const [group] = await Group.findOrCreate({
       where: {
-        [Op.or]: [
-          {
-            service: "kompassi",
-            serviceId: "" + profile.id,
-          },
-          {
-            service: { [Op.eq]: null },
-            email: profile.email,
-          },
-        ],
         teamId: team.id,
+        name: groupName,
       },
       defaults: {
-        service: "kompassi",
-        serviceId: "" + profile.id,
-        name: profile.full_name,
-        email: profile.email,
-        isAdmin: isAdmin,
-        avatarUrl: userAvatarUrl,
+        createdById: user.id,
       },
     });
 
-    // update the user with fresh details if they just accepted an invite
-    if (!user.serviceId || !user.service) {
-      await user.update({
-        service: "kompassi",
-        serviceId: profile.id,
-        avatarUrl: userAvatarUrl,
-      });
-    }
+    groupIds.push(group.id);
 
-    // update email address if it's changed in Kompassi
-    if (!isFirstSignin && profile.email !== user.email) {
-      await user.update({ email: profile.email });
-    }
-
-    if (isFirstUser) {
-      await team.provisionFirstCollection(user.id);
-      await team.provisionSubdomain(teamName.toLowerCase()); // FIXME
-    }
-
-    if (isFirstSignin) {
-      await Event.create({
-        name: "users.create",
-        actorId: user.id,
-        userId: user.id,
-        teamId: team.id,
-        data: {
-          name: user.name,
-          service: "kompassi",
-        },
-        ip: ctx.request.ip,
-      });
-    }
-
-    // update group membership
-    const groupIds: string[] = [];
-    for (const groupName of groupNames) {
-      // Ensure the groups exist that the user should be member of per Kompassi
-      const [group] = await Group.findOrCreate({
-        where: {
-          teamId: team.id,
-          name: groupName,
-        },
-        defaults: {
-          createdById: user.id,
-        },
-      });
-
-      groupIds.push(group.id);
-
-      // Ensure membership
-      await GroupUser.findOrCreate({
-        where: {
-          userId: user.id,
-          groupId: group.id,
-        },
-        defaults: {
-          createdById: user.id,
-        },
-      });
-    }
-
-    // Delete group memberships that are no longer valid per Kompassi
-    // FIXME: Not scoped to team, will also delete memberships of other teams
-    await GroupUser.destroy({
+    // Ensure membership
+    await GroupUser.findOrCreate({
       where: {
         userId: user.id,
-        [Op.not]: {
-          groupId: groupIds,
-        },
+        groupId: group.id,
+      },
+      defaults: {
+        createdById: user.id,
       },
     });
-
-    // set cookies on response and redirect to team subdomain
-    ctx.signIn(user, team, "kompassi", isFirstSignin);
-  } catch (err) {
-    if (err instanceof Sequelize.UniqueConstraintError) {
-      const exists = await User.findOne({
-        where: {
-          service: "email",
-          email: profile.email,
-          teamId: team.id,
-        },
-      });
-
-      if (exists) {
-        ctx.redirect(`${team.url}?notice=email-auth-required`);
-      } else {
-        ctx.redirect(`${team.url}?notice=auth-error`);
-      }
-
-      return;
-    }
-
-    throw err;
   }
+
+  // Delete group memberships that are no longer valid per Kompassi
+  // NOTE: Not scoped to team, would also delete memberships of other teams
+  // But self hosted Outline is single team only so this is fine.
+  await GroupUser.destroy({
+    where: {
+      userId: user.id,
+      [Op.not]: {
+        groupId: groupIds,
+      },
+    },
+  });
+
+  // set cookies on response and redirect to team subdomain
+  ctx.signIn(user, team, "kompassi", isNewUser);
 });
 
 export const config = {
