@@ -132,7 +132,7 @@ router.get("kompassi.callback", auth({ required: false }), async (ctx) => {
   // update adminship
   const { user, team, isNewUser } = result;
   user.isAdmin = isAdmin;
-  user.save();
+  await user.save();
 
   // update group membership
   const groupIds: string[] = [];
