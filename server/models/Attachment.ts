@@ -48,7 +48,9 @@ class Attachment extends BaseModel {
   }
 
   get isPrivate() {
-    return this.acl === "private";
+    // CON2: minio doesn't seem to support per-object ACL, so sign all URLs
+    // return this.acl === "private";
+    return true;
   }
 
   get buffer() {

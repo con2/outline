@@ -1,0 +1,30 @@
+ingress_public_hostname: wiki.tamperekuplii.fi
+
+postgres_managed: false
+postgres_hostname: siilo.tracon.fi
+postgres_database: outlinekuplii
+postgres_username: outlinekuplii
+postgres_ssl: true
+
+redis_managed: false
+redis_hostname: redis-ha-haproxy.redis-ha.svc.cluster.local
+redis_database: 14
+
+outline_secret_managed: false
+
+outline_setup_should_run: true
+
+ingress_letsencrypt_enabled: true
+ingress_letsencrypt_cluster_issuer: letsencrypt-prod
+
+aws_upload_bucket_url: https://minio.con2.fi
+aws_upload_bucket_name: outlinekuplii
+
+smtp_hostname: sr1.pahaip.fi
+smtp_from_email: root@tracon.fi
+
+kompassi_team_name: Tampere Kuplii
+kompassi_access_groups:
+  - turska-kuplii2022-labour-kuplitea
+kompassi_admin_groups:
+  - admins

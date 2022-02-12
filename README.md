@@ -1,3 +1,14 @@
+![Con2 – Collaboration Hub for Volunteer-Run Conventions in Finland](https://con2.fi/media/uploads/2018/08/23/con2_wide_800.png)
+
+# Con2 distribution of Outline (outline.con2.fi)
+
+This is the Con2 distribution of Outline. We extend Outline to provide OAuth2/OIDC authentication against our custom backend and provide a production ready Docker deployment for use with Kubernetes.
+
+For Con2 specific documentation, see the [Outline page in Con2 Outline](https://outline.con2.fi/doc/outline-XoY22Gm5aj).
+
+Original `README.md` follows.
+
+
 <p align="center">
   <img src="https://user-images.githubusercontent.com/31465/34380645-bd67f474-eb0b-11e7-8d03-0151c1730654.png" height="29" />
 </p>

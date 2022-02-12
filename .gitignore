@@ -11,3 +11,4 @@ fakes3/*
 *.pem
 *.key
 *.cert
+*.compiled.yaml

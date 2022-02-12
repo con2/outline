@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1.2
+
+ARG UPSTREAM_IMAGE
+FROM $UPSTREAM_IMAGE
+
+ADD --chmod=0755 docker-entrypoint.sh /opt/outline/
+
+ENTRYPOINT ["/opt/outline/docker-entrypoint.sh"]
+CMD ["node", "./build/server/index.js"]

@@ -1,0 +1,24 @@
+apiVersion: skaffold/v2beta9
+kind: Config
+metadata:
+  name: outline
+
+build:
+  local:
+    useBuildkit: true
+  artifacts:
+    - image: outline
+      context: .
+    - image: outline-con2
+      context: .
+      docker:
+        dockerfile: Dockerfile.con2
+      requires:
+        - image: outline
+          alias: UPSTREAM_IMAGE
+
+deploy:
+  statusCheckDeadlineSeconds: 300
+  kubectl:
+    manifests:
+      - kubernetes/template.compiled.yaml
