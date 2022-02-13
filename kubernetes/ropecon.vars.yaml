@@ -28,5 +28,6 @@ smtp_from_email: root@tracon.fi
 kompassi_team_name: Ropecon
 kompassi_access_groups:
   - turska-ropecon2022-labour-conitea
+  - ropeconry-hallitus-nykyinen
 kompassi_admin_groups:
   - admins
