@@ -28,7 +28,10 @@ jobs:
         run: |
           python3 -m pip install emskaffolden
           emskaffolden -- build --file-output build.json
-          echo "::set-output name=build_json::$(base64 -w 0 < build.json)"
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build-json
+          path: build.json
     outputs:
       build_json: ${{ steps.build.outputs.build_json }}
 
@@ -38,6 +41,10 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/con2' }}
     steps:
       - uses: actions/checkout@v1
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-json
+          path: build.json
       - uses: actions/setup-python@v2
         with:
           python-version: '3.x'
@@ -48,7 +55,7 @@ jobs:
       - uses: docker/setup-buildx-action@v1
       - run: |
           python3 -m pip install emskaffolden
-          base64 -d <<< "${{ needs.build.outputs.build_json }}" > build.json
           emskaffolden -E con2 -- deploy -n outline -a build.json
           emskaffolden -E tracon -- deploy -n outline-tracon -a build.json
           emskaffolden -E kuplii -- deploy -n outline-kuplii -a build.json
+          emskaffolden -E ropecon -- deploy -n outline-ropecon -a build.json
