@@ -195,6 +195,9 @@ ingress_annotations: !If
   then:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    kubernetes.io/ingress.class: "nginx"
+  else:
+    kubernetes.io/ingress.class: "nginx"
 
 ingress_tls: !If
   test: !Var ingress_letsencrypt_enabled
