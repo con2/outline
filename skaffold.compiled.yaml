@@ -6,14 +6,16 @@ build:
   local:
     useBuildkit: true
   artifacts:
-  - image: outline
+  - image: outline-base
     context: .
+    docker:
+      dockerfile: Dockerfile.base
   - image: outline-con2
     context: .
     docker:
       dockerfile: Dockerfile.con2
     requires:
-    - image: outline
+    - image: outline-base
       alias: UPSTREAM_IMAGE
 deploy:
   statusCheckDeadlineSeconds: 300
