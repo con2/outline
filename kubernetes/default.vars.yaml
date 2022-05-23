@@ -155,7 +155,7 @@ outline_environment:
   - name: PGSSLMODE
     value: !If
       test: !Var postgres_ssl
-      then: !Void
+      then: require
       else: disable
   - name: SMTP_HOST
     value: !Var smtp_hostname
