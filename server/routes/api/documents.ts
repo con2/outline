@@ -1,3 +1,4 @@
+import fs from "fs-extra";
 import invariant from "invariant";
 import Router from "koa-router";
 import { Op, ScopeOptions, WhereOptions } from "sequelize";
@@ -6,6 +7,7 @@ import documentCreator from "@server/commands/documentCreator";
 import documentImporter from "@server/commands/documentImporter";
 import documentMover from "@server/commands/documentMover";
 import documentPermanentDeleter from "@server/commands/documentPermanentDeleter";
+import documentUpdater from "@server/commands/documentUpdater";
 import { sequelize } from "@server/database/sequelize";
 import {
   NotFoundError,
@@ -173,7 +175,7 @@ router.post("documents.archived", auth(), pagination(), async (ctx) => {
   const { user } = ctx.state;
   const collectionIds = await user.collectionIds();
   const collectionScope: Readonly<ScopeOptions> = {
-    method: ["withCollection", user.id],
+    method: ["withCollectionPermissions", user.id],
   };
   const viewScope: Readonly<ScopeOptions> = {
     method: ["withViews", user.id],
@@ -219,7 +221,7 @@ router.post("documents.deleted", auth(), pagination(), async (ctx) => {
     paranoid: false,
   });
   const collectionScope: Readonly<ScopeOptions> = {
-    method: ["withCollection", user.id],
+    method: ["withCollectionPermissions", user.id],
   };
   const viewScope: Readonly<ScopeOptions> = {
     method: ["withViews", user.id],
@@ -357,7 +359,7 @@ router.post("documents.drafts", auth(), pagination(), async (ctx) => {
   }
 
   const collectionScope: Readonly<ScopeOptions> = {
-    method: ["withCollection", user.id],
+    method: ["withCollectionPermissions", user.id],
   };
   const documents = await Document.scope([
     "defaultScope",
@@ -465,10 +467,16 @@ async function loadDocument({
       await share.update({
         lastAccessedAt: new Date(),
       });
+
+      // Cannot use document.collection here as it does not include the
+      // documentStructure by default through the relationship.
+      collection = await Collection.findByPk(document.collectionId);
+      invariant(collection, "collection not found");
+
       return {
         document,
         share,
-        collection: document.collection,
+        collection,
       };
     }
 
@@ -708,7 +716,7 @@ router.post("documents.search_titles", auth(), pagination(), async (ctx) => {
       method: ["withViews", user.id],
     },
     {
-      method: ["withCollection", user.id],
+      method: ["withCollectionPermissions", user.id],
     },
   ]).findAll({
     where: {
@@ -999,8 +1007,6 @@ router.post("documents.update", auth(), async (ctx) => {
     text,
     fullWidth,
     publish,
-    autosave,
-    done,
     lastRevision,
     templateId,
     append,
@@ -1012,91 +1018,37 @@ router.post("documents.update", auth(), async (ctx) => {
   }
   const { user } = ctx.state;
 
-  const document = await Document.findByPk(id, {
-    userId: user.id,
-  });
-  authorize(user, "update", document);
+  let collection: Collection | null | undefined;
 
-  if (lastRevision && lastRevision !== document.revisionCount) {
-    throw InvalidRequestError("Document has changed since last revision");
-  }
+  const document = await sequelize.transaction(async (transaction) => {
+    const document = await Document.findByPk(id, {
+      userId: user.id,
+      transaction,
+    });
+    authorize(user, "update", document);
 
-  const previousTitle = document.title;
+    collection = document.collection;
 
-  // Update document
-  if (title !== undefined) {
-    document.title = title;
-  }
-  if (editorVersion) {
-    document.editorVersion = editorVersion;
-  }
-  if (templateId) {
-    document.templateId = templateId;
-  }
-  if (fullWidth !== undefined) {
-    document.fullWidth = fullWidth;
-  }
-
-  if (!user.team?.collaborativeEditing) {
-    if (append) {
-      document.text += text;
-    } else if (text !== undefined) {
-      document.text = text;
+    if (lastRevision && lastRevision !== document.revisionCount) {
+      throw InvalidRequestError("Document has changed since last revision");
     }
-  }
 
-  document.lastModifiedById = user.id;
-  const { collection } = document;
-  const changed = document.changed();
-
-  if (publish) {
-    await document.publish(user.id);
-  } else {
-    await document.save();
-  }
-
-  if (publish) {
-    await Event.create({
-      name: "documents.publish",
-      documentId: document.id,
-      collectionId: document.collectionId,
-      teamId: document.teamId,
-      actorId: user.id,
-      data: {
-        title: document.title,
-      },
+    return documentUpdater({
+      document,
+      user,
+      title,
+      text,
+      fullWidth,
+      publish,
+      append,
+      templateId,
+      editorVersion,
+      transaction,
       ip: ctx.request.ip,
     });
-  } else if (changed) {
-    await Event.create({
-      name: "documents.update",
-      documentId: document.id,
-      collectionId: document.collectionId,
-      teamId: document.teamId,
-      actorId: user.id,
-      data: {
-        autosave,
-        done,
-        title: document.title,
-      },
-      ip: ctx.request.ip,
-    });
-  }
+  });
 
-  if (document.title !== previousTitle) {
-    Event.schedule({
-      name: "documents.title_change",
-      documentId: document.id,
-      collectionId: document.collectionId,
-      teamId: document.teamId,
-      actorId: user.id,
-      data: {
-        previousTitle,
-        title: document.title,
-      },
-      ip: ctx.request.ip,
-    });
-  }
+  invariant(collection, "collection not found");
 
   document.updatedBy = user;
   document.collection = collection;
@@ -1273,6 +1225,11 @@ router.post("documents.unpublish", auth(), async (ctx) => {
   });
   authorize(user, "unpublish", document);
 
+  const childDocumentIds = await document.getChildDocumentIds();
+  if (childDocumentIds.length > 0) {
+    throw InvalidRequestError("Cannot unpublish document with child documents");
+  }
+
   await document.unpublish(user.id);
   await Event.create({
     name: "documents.unpublish",
@@ -1342,22 +1299,31 @@ router.post("documents.import", auth(), async (ctx) => {
     });
   }
 
-  const { text, title } = await documentImporter({
-    user,
-    file,
-    ip: ctx.request.ip,
+  const content = await fs.readFile(file.path);
+  const document = await sequelize.transaction(async (transaction) => {
+    const { text, title } = await documentImporter({
+      user,
+      fileName: file.name,
+      mimeType: file.type,
+      content,
+      ip: ctx.request.ip,
+      transaction,
+    });
+
+    return documentCreator({
+      source: "import",
+      title,
+      text,
+      publish,
+      collectionId,
+      parentDocumentId,
+      index,
+      user,
+      ip: ctx.request.ip,
+      transaction,
+    });
   });
-  const document = await documentCreator({
-    source: "import",
-    title,
-    text,
-    publish,
-    collectionId,
-    parentDocumentId,
-    index,
-    user,
-    ip: ctx.request.ip,
-  });
+
   document.collection = collection;
 
   return (ctx.body = {
@@ -1414,7 +1380,7 @@ router.post("documents.create", auth(), async (ctx) => {
     });
   }
 
-  let templateDocument;
+  let templateDocument: Document | null | undefined;
 
   if (templateId) {
     templateDocument = await Document.findByPk(templateId, {
@@ -1423,19 +1389,23 @@ router.post("documents.create", auth(), async (ctx) => {
     authorize(user, "read", templateDocument);
   }
 
-  const document = await documentCreator({
-    title,
-    text,
-    publish,
-    collectionId,
-    parentDocumentId,
-    templateDocument,
-    template,
-    index,
-    user,
-    editorVersion,
-    ip: ctx.request.ip,
+  const document = await sequelize.transaction(async (transaction) => {
+    return documentCreator({
+      title,
+      text,
+      publish,
+      collectionId,
+      parentDocumentId,
+      templateDocument,
+      template,
+      index,
+      user,
+      editorVersion,
+      ip: ctx.request.ip,
+      transaction,
+    });
   });
+
   document.collection = collection;
 
   return (ctx.body = {

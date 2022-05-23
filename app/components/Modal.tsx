@@ -67,6 +67,7 @@ const Modal: React.FC<Props> = ({
         <Backdrop $isCentered={isCentered} {...props}>
           <Dialog
             {...dialog}
+            aria-label={typeof title === "string" ? title : undefined}
             preventBodyScroll
             hideOnEsc
             hideOnClickOutside={!!isCentered}
@@ -75,18 +76,24 @@ const Modal: React.FC<Props> = ({
             {(props) =>
               isCentered && !isMobile ? (
                 <Small {...props}>
-                  <Centered onClick={(ev) => ev.stopPropagation()} column>
+                  <Centered
+                    onClick={(ev) => ev.stopPropagation()}
+                    column
+                    reverse
+                  >
+                    <SmallContent shadow>{children}</SmallContent>
                     <Header>
                       {title && (
                         <Text as="span" size="large">
                           {title}
                         </Text>
                       )}
-                      <NudeButton onClick={onRequestClose}>
-                        <CloseIcon color="currentColor" />
-                      </NudeButton>
+                      <Text as="span" size="large">
+                        <NudeButton onClick={onRequestClose}>
+                          <CloseIcon color="currentColor" />
+                        </NudeButton>
+                      </Text>
                     </Header>
-                    <SmallContent shadow>{children}</SmallContent>
                   </Centered>
                 </Small>
               ) : (
@@ -261,6 +268,11 @@ const Small = styled.div`
     &[aria-expanded="true"] {
       background: ${(props) => props.theme.sidebarControlHoverBackground};
     }
+    vertical-align: middle;
+  }
+
+  ${Header} {
+    align-items: start;
   }
 `;
 

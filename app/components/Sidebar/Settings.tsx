@@ -8,7 +8,7 @@ import styled from "styled-components";
 import Flex from "~/components/Flex";
 import Scrollable from "~/components/Scrollable";
 import useAuthorizedSettingsConfig from "~/hooks/useAuthorizedSettingsConfig";
-import isHosted from "~/utils/isHosted";
+import isCloudHosted from "~/utils/isCloudHosted";
 import Sidebar from "./Sidebar";
 import Header from "./components/Header";
 import Section from "./components/Section";
@@ -39,20 +39,21 @@ function SettingsSidebar() {
         <Scrollable shadow>
           {Object.keys(groupedConfig).map((header) => (
             <Section key={header}>
-              <Header>{header}</Header>
-              {groupedConfig[header].map((item) => (
-                <SidebarLink
-                  key={item.path}
-                  to={item.path}
-                  icon={<item.icon color="currentColor" />}
-                  label={item.name}
-                />
-              ))}
+              <Header title={header}>
+                {groupedConfig[header].map((item) => (
+                  <SidebarLink
+                    key={item.path}
+                    to={item.path}
+                    icon={<item.icon color="currentColor" />}
+                    label={item.name}
+                  />
+                ))}
+              </Header>
             </Section>
           ))}
-          {!isHosted && (
+          {!isCloudHosted && (
             <Section>
-              <Header>{t("Installation")}</Header>
+              <Header title={t("Installation")} />
               <Version />
             </Section>
           )}

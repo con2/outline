@@ -1,4 +1,4 @@
-import Logger from "@server/logging/logger";
+import Logger from "@server/logging/Logger";
 import * as Tracing from "@server/logging/tracing";
 import { APM } from "@server/logging/tracing";
 import {
@@ -46,7 +46,10 @@ export default function init() {
             // websockets are a special case on their own queue because they must
             // only be consumed by the websockets service rather than workers.
             await websocketQueue.add(job.data);
-          } else if (ProcessorClass.applicableEvents.includes(event.name)) {
+          } else if (
+            ProcessorClass.applicableEvents.includes(event.name) ||
+            ProcessorClass.applicableEvents.includes("*")
+          ) {
             await processorEventQueue.add({ event, name });
           }
         } catch (error) {

@@ -148,7 +148,7 @@ function InnerDocumentLink(
       collectionId: collection?.id || "",
     }),
     collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
+      isDragging: monitor.isDragging(),
     }),
     canDrag: () => {
       return (
@@ -213,7 +213,7 @@ function InnerDocumentLink(
       }
     },
     collect: (monitor) => ({
-      isOverReparent: !!monitor.isOver({
+      isOverReparent: monitor.isOver({
         shallow: true,
       }),
       canDropToReparent: monitor.canDrop(),
@@ -252,25 +252,24 @@ function InnerDocumentLink(
       documents.move(item.id, collection.id, parentId, index + 1);
     },
     collect: (monitor) => ({
-      isOverReorder: !!monitor.isOver(),
-      isDraggingAnyDocument: !!monitor.canDrop(),
+      isOverReorder: monitor.isOver(),
+      isDraggingAnyDocument: monitor.canDrop(),
     }),
   });
 
   const nodeChildren = React.useMemo(() => {
-    if (
-      collection &&
+    const insertDraftDocument =
       activeDocument?.isDraft &&
       activeDocument?.isActive &&
-      activeDocument?.parentDocumentId === node.id
-    ) {
-      return sortNavigationNodes(
-        [activeDocument?.asNavigationNode, ...node.children],
-        collection.sort
-      );
-    }
+      activeDocument?.parentDocumentId === node.id;
 
-    return node.children;
+    return collection && insertDraftDocument
+      ? sortNavigationNodes(
+          [activeDocument?.asNavigationNode, ...node.children],
+          collection.sort,
+          false
+        )
+      : node.children;
   }, [
     activeDocument?.isActive,
     activeDocument?.isDraft,

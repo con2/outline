@@ -81,17 +81,18 @@ export const base = {
   codePlaceholder: "#3d8fd1",
   codeInserted: "#202746",
   codeImportant: "#c94922",
-  noticeInfoBackground: colors.warmGrey,
+  noticeInfoBackground: colors.primary,
   noticeInfoText: colors.almostBlack,
-  noticeTipBackground: "#fce5bb",
+  noticeTipBackground: "#F5BE31",
   noticeTipText: colors.almostBlack,
-  noticeWarningBackground: "#ffadbf",
+  noticeWarningBackground: "#d73a49",
   noticeWarningText: colors.almostBlack,
   breakpoints,
 };
 
 export const light = {
   ...base,
+  isDark: false,
   background: colors.white,
   secondaryBackground: colors.warmGrey,
   link: colors.primary,
@@ -149,6 +150,7 @@ export const light = {
 
 export const dark = {
   ...base,
+  isDark: true,
   background: colors.almostBlack,
   secondaryBackground: colors.black50,
   link: "#137FFB",
@@ -201,11 +203,8 @@ export const dark = {
   codeString: "#3d8fd1",
   embedBorder: colors.black50,
   horizontalRule: lighten(0.1, colors.almostBlack),
-  noticeInfoBackground: "#252a37",
   noticeInfoText: colors.white,
-  noticeTipBackground: "#a3840a",
   noticeTipText: colors.white,
-  noticeWarningBackground: "#7a001b",
   noticeWarningText: colors.white,
   progressBarBackground: colors.slate,
   scrollbarBackground: colors.black,

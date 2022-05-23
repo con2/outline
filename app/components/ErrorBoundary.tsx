@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/react";
 import { observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
@@ -10,7 +9,8 @@ import CenteredContent from "~/components/CenteredContent";
 import PageTitle from "~/components/PageTitle";
 import Text from "~/components/Text";
 import env from "~/env";
-import isHosted from "~/utils/isHosted";
+import Logger from "~/utils/Logger";
+import isCloudHosted from "~/utils/isCloudHosted";
 
 type Props = WithTranslation & {
   reloadOnChunkMissing?: boolean;
@@ -26,7 +26,6 @@ class ErrorBoundary extends React.Component<Props> {
 
   componentDidCatch(error: Error) {
     this.error = error;
-    console.error(error);
 
     if (
       this.props.reloadOnChunkMissing &&
@@ -40,9 +39,7 @@ class ErrorBoundary extends React.Component<Props> {
       return;
     }
 
-    if (env.SENTRY_DSN) {
-      Sentry.captureException(error);
-    }
+    Logger.error("ErrorBoundary", error);
   }
 
   handleReload = () => {
@@ -62,7 +59,7 @@ class ErrorBoundary extends React.Component<Props> {
 
     if (this.error) {
       const error = this.error;
-      const isReported = !!env.SENTRY_DSN && isHosted;
+      const isReported = !!env.SENTRY_DSN && isCloudHosted;
       const isChunkError = this.error.message.match(/chunk/);
 
       if (isChunkError) {

@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import { DomainNotAllowedError, InviteRequiredError } from "@server/errors";
 import { Event, Team, User, UserAuthentication } from "@server/models";
 
 type UserCreatorResult = {
@@ -144,9 +145,23 @@ export default async function userCreator({
 
   try {
     const team = await Team.findByPk(teamId, {
-      attributes: ["defaultUserRole"],
+      attributes: ["defaultUserRole", "inviteRequired", "id"],
       transaction,
     });
+
+    // If the team settings are set to require invites, and the user is not already invited,
+    // throw an error and fail user creation.
+    if (team?.inviteRequired && !invite) {
+      throw InviteRequiredError();
+    }
+
+    // If the team settings do not allow this domain,
+    // throw an error and fail user creation.
+    const domain = email.split("@")[1];
+    if (team && !(await team.isDomainAllowed(domain))) {
+      throw DomainNotAllowedError();
+    }
+
     const defaultUserRole = team?.defaultUserRole;
 
     const user = await User.create(

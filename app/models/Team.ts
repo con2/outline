@@ -21,6 +21,10 @@ class Team extends BaseModel {
 
   @Field
   @observable
+  inviteRequired: boolean;
+
+  @Field
+  @observable
   collaborativeEditing: boolean;
 
   @Field
@@ -50,6 +54,10 @@ class Team extends BaseModel {
   domain: string | null | undefined;
 
   url: string;
+
+  @Field
+  @observable
+  allowedDomains: string[] | null | undefined;
 
   @computed
   get signinMethods(): string {
