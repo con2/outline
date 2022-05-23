@@ -55,7 +55,7 @@ aws_s3_acl: private
 
 smtp_hostname: ""
 smtp_port: 25
-smtp_from_email: ""
+smtp_from_email: nonexistent@example.com
 smtp_username: ""
 
 # outline_secret_managed: false - ignored
