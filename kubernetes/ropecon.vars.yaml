@@ -6,11 +6,9 @@ postgres_database: outlineropecon
 postgres_username: outlineropecon
 postgres_ssl: true
 
-# we are out of databases in the redis sentinel cluster, so use managed redis for now
-# once transition from harbor to ghcr is complete, use one of the harbor redis databases for this
-redis_managed: true
-# redis_hostname: redis-ha-haproxy.redis-ha.svc.cluster.local
-# redis_database: 12
+redis_managed: false
+redis_hostname: redis-ha-haproxy.redis-ha.svc.cluster.local
+redis_database: 6
 
 outline_secret_managed: false
 
