@@ -87,7 +87,7 @@
     "date-fns": "^2.25.0",
     "dotenv": "^4.0.0",
     "email-providers": "^1.13.1",
-    "emoji-regex": "^10.0.0",
+    "emoji-regex": "^10.1.0",
     "es6-error": "^4.1.1",
     "exports-loader": "^0.6.4",
     "fetch-retry": "^4.1.1",
