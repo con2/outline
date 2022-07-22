@@ -124,7 +124,7 @@
     "koa-sslify": "2.1.2",
     "koa-static": "^4.0.1",
     "lodash": "^4.17.21",
-    "mammoth": "^1.4.19",
+    "mammoth": "^1.4.21",
     "markdown-it": "^12.3.2",
     "markdown-it-container": "^3.0.0",
     "markdown-it-emoji": "^2.0.0",
