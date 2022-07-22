@@ -1,5 +1,4 @@
 import path from "path";
-import { FindOptions } from "sequelize";
 import {
   BeforeDestroy,
   BelongsTo,
@@ -9,26 +8,41 @@ import {
   IsIn,
   Table,
   DataType,
+  IsNumeric,
 } from "sequelize-typescript";
 import { publicS3Endpoint, deleteFromS3, getFileByKey } from "@server/utils/s3";
 import Document from "./Document";
 import Team from "./Team";
 import User from "./User";
-import BaseModel from "./base/BaseModel";
+import IdModel from "./base/IdModel";
 import Fix from "./decorators/Fix";
+import Length from "./validators/Length";
 
 @Table({ tableName: "attachments", modelName: "attachment" })
 @Fix
-class Attachment extends BaseModel {
+class Attachment extends IdModel {
+  @Length({
+    max: 4096,
+    msg: "key must be 4096 characters or less",
+  })
   @Column
   key: string;
 
+  @Length({
+    max: 4096,
+    msg: "url must be 4096 characters or less",
+  })
   @Column
   url: string;
 
+  @Length({
+    max: 255,
+    msg: "contentType must be 255 characters or less",
+  })
   @Column
   contentType: string;
 
+  @IsNumeric
   @Column(DataType.BIGINT)
   size: number;
 
@@ -94,28 +108,6 @@ class Attachment extends BaseModel {
   @ForeignKey(() => User)
   @Column(DataType.UUID)
   userId: string;
-
-  static async findAllInBatches(
-    query: FindOptions<Attachment>,
-    callback: (
-      attachments: Array<Attachment>,
-      query: FindOptions<Attachment>
-    ) => Promise<void>
-  ) {
-    if (!query.offset) {
-      query.offset = 0;
-    }
-    if (!query.limit) {
-      query.limit = 10;
-    }
-    let results;
-
-    do {
-      results = await this.findAll(query);
-      await callback(results, query);
-      query.offset += query.limit;
-    } while (results.length >= query.limit);
-  }
 }
 
 export default Attachment;

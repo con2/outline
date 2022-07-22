@@ -1,11 +1,8 @@
 import Router from "koa-router";
 import { v4 as uuidv4 } from "uuid";
 import { bytesToHumanReadable } from "@shared/utils/files";
-import {
-  AuthorizationError,
-  NotFoundError,
-  ValidationError,
-} from "@server/errors";
+import { sequelize } from "@server/database/sequelize";
+import { AuthorizationError, ValidationError } from "@server/errors";
 import auth from "@server/middlewares/authentication";
 import { Attachment, Document, Event } from "@server/models";
 import { authorize } from "@server/policies";
@@ -14,7 +11,7 @@ import {
   publicS3Endpoint,
   getSignedUrl,
 } from "@server/utils/s3";
-import { assertPresent } from "@server/validation";
+import { assertPresent, assertUuid } from "@server/validation";
 
 const router = new Router();
 const AWS_S3_ACL = process.env.AWS_S3_ACL || "private";
@@ -42,13 +39,10 @@ router.post("attachments.create", auth(), async (ctx) => {
     );
   }
 
+  const isPublic = ctx.body.public;
   const s3Key = uuidv4();
   const acl =
-    ctx.body.public === undefined
-      ? AWS_S3_ACL
-      : ctx.body.public
-      ? "public-read"
-      : "private";
+    isPublic === undefined ? AWS_S3_ACL : isPublic ? "public-read" : "private";
   const bucket = acl === "public-read" ? "public" : "uploads";
   const key = `${bucket}/${user.id}/${s3Key}/${name}`;
   const presignedPost = await getPresignedPost(key, acl, contentType);
@@ -62,24 +56,34 @@ router.post("attachments.create", auth(), async (ctx) => {
     authorize(user, "update", document);
   }
 
-  const attachment = await Attachment.create({
-    key,
-    acl,
-    size,
-    url,
-    contentType,
-    documentId,
-    teamId: user.teamId,
-    userId: user.id,
-  });
-  await Event.create({
-    name: "attachments.create",
-    data: {
-      name,
-    },
-    teamId: user.teamId,
-    userId: user.id,
-    ip: ctx.request.ip,
+  const attachment = await sequelize.transaction(async (transaction) => {
+    const attachment = await Attachment.create(
+      {
+        key,
+        acl,
+        size,
+        url,
+        contentType,
+        documentId,
+        teamId: user.teamId,
+        userId: user.id,
+      },
+      { transaction }
+    );
+    await Event.create(
+      {
+        name: "attachments.create",
+        data: {
+          name,
+        },
+        teamId: user.teamId,
+        actorId: user.id,
+        ip: ctx.request.ip,
+      },
+      { transaction }
+    );
+
+    return attachment;
   });
 
   ctx.body = {
@@ -96,7 +100,7 @@ router.post("attachments.create", auth(), async (ctx) => {
         contentType,
         name,
         id: attachment.id,
-        url: attachment.redirectUrl,
+        url: isPublic ? url : attachment.redirectUrl,
         size,
       },
     },
@@ -105,13 +109,11 @@ router.post("attachments.create", auth(), async (ctx) => {
 
 router.post("attachments.delete", auth(), async (ctx) => {
   const { id } = ctx.body;
-  assertPresent(id, "id is required");
+  assertUuid(id, "id is required");
   const { user } = ctx.state;
-  const attachment = await Attachment.findByPk(id);
-
-  if (!attachment) {
-    throw NotFoundError();
-  }
+  const attachment = await Attachment.findByPk(id, {
+    rejectOnEmpty: true,
+  });
 
   if (attachment.documentId) {
     const document = await Document.findByPk(attachment.documentId, {
@@ -125,7 +127,7 @@ router.post("attachments.delete", auth(), async (ctx) => {
   await Event.create({
     name: "attachments.delete",
     teamId: user.teamId,
-    userId: user.id,
+    actorId: user.id,
     ip: ctx.request.ip,
   });
 
@@ -136,13 +138,11 @@ router.post("attachments.delete", auth(), async (ctx) => {
 
 router.post("attachments.redirect", auth(), async (ctx) => {
   const { id } = ctx.body;
-  assertPresent(id, "id is required");
+  assertUuid(id, "id is required");
   const { user } = ctx.state;
-  const attachment = await Attachment.findByPk(id);
-
-  if (!attachment) {
-    throw NotFoundError();
-  }
+  const attachment = await Attachment.findByPk(id, {
+    rejectOnEmpty: true,
+  });
 
   if (attachment.isPrivate) {
     if (attachment.teamId !== user.teamId) {

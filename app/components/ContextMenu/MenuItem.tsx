@@ -1,9 +1,9 @@
+import { LocationDescriptor } from "history";
 import { CheckmarkIcon } from "outline-icons";
 import * as React from "react";
 import { MenuItem as BaseMenuItem } from "reakit/Menu";
 import styled, { css } from "styled-components";
 import breakpoint from "styled-components-breakpoint";
-import { hover } from "~/styles";
 import MenuIconWrapper from "../MenuIconWrapper";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
   selected?: boolean;
   disabled?: boolean;
   dangerous?: boolean;
-  to?: string;
+  to?: LocationDescriptor;
   href?: string;
   target?: "_blank";
   as?: string | React.ComponentType<any>;
@@ -132,16 +132,18 @@ export const MenuAnchorCSS = css<MenuAnchorProps>`
       ? "pointer-events: none;"
       : `
 
-  &:${hover},
-  &:focus,
-  &.focus-visible {
-    color: ${props.theme.white};
-    background: ${props.dangerous ? props.theme.danger : props.theme.primary};
-    box-shadow: none;
-    cursor: pointer;
+  @media (hover: hover) {
+    &:hover,
+    &:focus,
+    &.focus-visible {
+      color: ${props.theme.white};
+      background: ${props.dangerous ? props.theme.danger : props.theme.primary};
+      box-shadow: none;
+      cursor: pointer;
 
-    svg {
-      fill: ${props.theme.white};
+      svg {
+        fill: ${props.theme.white};
+      }
     }
   }
   `};

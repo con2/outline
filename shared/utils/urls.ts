@@ -1,6 +1,5 @@
+import env from "../env";
 import { parseDomain } from "./domains";
-
-const env = typeof window !== "undefined" ? window.env : process.env;
 
 /**
  * Prepends the CDN url to the given path (If a CDN is configured).
@@ -23,26 +22,23 @@ export function cdnPath(path: string): string {
  * @returns True if the url is internal, false otherwise.
  */
 export function isInternalUrl(href: string) {
+  // empty strings are never internal
+  if (href === "") {
+    return false;
+  }
+
+  // relative paths are always internal
   if (href[0] === "/") {
     return true;
   }
+
   const outline =
     typeof window !== "undefined"
       ? parseDomain(window.location.href)
       : undefined;
-  const parsed = parseDomain(href);
 
-  if (
-    parsed &&
-    outline &&
-    parsed.subdomain === outline.subdomain &&
-    parsed.domain === outline.domain &&
-    parsed.tld === outline.tld
-  ) {
-    return true;
-  }
-
-  return false;
+  const domain = parseDomain(href);
+  return outline?.host === domain.host;
 }
 
 /**
@@ -81,7 +77,11 @@ export function isExternalUrl(url: string) {
  * @param href The href to sanitize
  * @returns The sanitized href
  */
-export function sanitizeHref(href: string) {
+export function sanitizeHref(href: string | null | undefined) {
+  if (!href) {
+    return undefined;
+  }
+
   if (
     !isUrl(href) &&
     !href.startsWith("/") &&
