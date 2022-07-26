@@ -28,6 +28,7 @@ kompassi_access_groups:
   - turska-ropecon2022-labour-conitea
   - turska-ropecon2022-labour-accepted
   - turska-ropecon2022-programme-hosts
+  - turska-ropecon2022-larp-hosts
   - ropeconry-hallitus-nykyinen
 kompassi_admin_groups:
   - admins
