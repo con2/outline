@@ -28,6 +28,7 @@ kompassi_access_groups:
   - turska-tracon2022-labour-conitea
   - turska-tracon2022-labour-info
   - turska-tracon2022-labour-accepted
+  - turska-tracon2022-programme-hosts
   - traconry-hallitus-nykyinen
 kompassi_admin_groups:
   - admins
