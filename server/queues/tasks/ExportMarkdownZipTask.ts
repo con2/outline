@@ -72,8 +72,10 @@ export default class ExportMarkdownZipTask extends BaseTask<Props> {
 
       await ExportSuccessEmail.schedule({
         to: user.email,
+        userId: user.id,
         id: fileOperation.id,
         teamUrl: team.url,
+        teamId: team.id,
       });
     } catch (error) {
       await this.updateFileOperation(fileOperation, {
@@ -82,7 +84,9 @@ export default class ExportMarkdownZipTask extends BaseTask<Props> {
       });
       await ExportFailureEmail.schedule({
         to: user.email,
+        userId: user.id,
         teamUrl: team.url,
+        teamId: team.id,
       });
       throw error;
     }
@@ -120,7 +124,7 @@ export default class ExportMarkdownZipTask extends BaseTask<Props> {
   public get options() {
     return {
       priority: TaskPriority.Background,
-      attempts: 2,
+      attempts: 1,
     };
   }
 }

@@ -2,10 +2,10 @@ import path from "path";
 import invariant from "invariant";
 import { find, orderBy, filter, compact, omitBy } from "lodash";
 import { observable, action, computed, runInAction } from "mobx";
-import { MAX_TITLE_LENGTH } from "@shared/constants";
 import { DateFilter } from "@shared/types";
 import { subtractDate } from "@shared/utils/date";
 import naturalSort from "@shared/utils/naturalSort";
+import { DocumentValidation } from "@shared/validations";
 import BaseStore from "~/stores/BaseStore";
 import RootStore from "~/stores/RootStore";
 import Document from "~/models/Document";
@@ -381,7 +381,7 @@ export default class DocumentsStore extends BaseStore<Document> {
 
   @action
   searchTitles = async (query: string) => {
-    const res = await client.get("/documents.search_titles", {
+    const res = await client.post("/documents.search_titles", {
       query,
     });
     invariant(res?.data, "Search response should be available");
@@ -397,7 +397,7 @@ export default class DocumentsStore extends BaseStore<Document> {
     options: SearchParams
   ): Promise<SearchResult[]> => {
     const compactedOptions = omitBy(options, (o) => !o);
-    const res = await client.get("/documents.search", {
+    const res = await client.post("/documents.search", {
       ...compactedOptions,
       query,
     });
@@ -532,7 +532,7 @@ export default class DocumentsStore extends BaseStore<Document> {
         id: documentId,
         collectionId,
         parentDocumentId,
-        index: index,
+        index,
       });
       invariant(res?.data, "Data not available");
       res.data.documents.forEach(this.add);
@@ -553,7 +553,7 @@ export default class DocumentsStore extends BaseStore<Document> {
       template: document.template,
       title: `${document.title.slice(
         0,
-        MAX_TITLE_LENGTH - append.length
+        DocumentValidation.maxTitleLength - append.length
       )}${append}`,
       text: document.text,
     });
@@ -740,20 +740,37 @@ export default class DocumentsStore extends BaseStore<Document> {
     }
   };
 
-  star = async (document: Document) => {
-    await this.rootStore.stars.create({
+  star = (document: Document) => {
+    return this.rootStore.stars.create({
       documentId: document.id,
     });
   };
 
-  unstar = async (document: Document) => {
+  unstar = (document: Document) => {
     const star = this.rootStore.stars.orderedData.find(
       (star) => star.documentId === document.id
     );
-    await star?.delete();
+    return star?.delete();
   };
 
-  getByUrl = (url = ""): Document | null | undefined => {
+  subscribe = (document: Document) => {
+    return this.rootStore.subscriptions.create({
+      documentId: document.id,
+      event: "documents.update",
+    });
+  };
+
+  unsubscribe = (userId: string, document: Document) => {
+    const subscription = this.rootStore.subscriptions.orderedData.find(
+      (subscription) =>
+        subscription.documentId === document.id &&
+        subscription.userId === userId
+    );
+
+    return subscription?.delete();
+  };
+
+  getByUrl = (url = ""): Document | undefined => {
     return find(this.orderedData, (doc) => url.endsWith(doc.urlId));
   };
 

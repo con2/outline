@@ -187,8 +187,8 @@ function CollectionMenu({
   );
 
   const alphabeticalSort = collection.sort.field === "title";
-  const can = usePolicy(collection.id);
-  const canUserInTeam = usePolicy(team.id);
+  const can = usePolicy(collection);
+  const canUserInTeam = usePolicy(team);
   const items: MenuItem[] = React.useMemo(
     () => [
       {
@@ -266,7 +266,7 @@ function CollectionMenu({
       {
         type: "button",
         title: `${t("Export")}…`,
-        visible: !!(collection && canUserInTeam.export),
+        visible: !!(collection && canUserInTeam.createExport),
         onClick: handleExport,
         icon: <ExportIcon />,
       },
@@ -296,7 +296,7 @@ function CollectionMenu({
       alphabeticalSort,
       handleEdit,
       handlePermissions,
-      canUserInTeam.export,
+      canUserInTeam.createExport,
       handleExport,
       handleDelete,
       handleChangeSort,

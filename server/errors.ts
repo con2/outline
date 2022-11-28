@@ -1,13 +1,28 @@
 import httpErrors from "http-errors";
-import env from "./env";
+
+export function InternalError(message = "Internal error") {
+  return httpErrors(500, message, {
+    id: "internal_error",
+  });
+}
 
 export function AuthenticationError(
-  message = "Invalid authentication",
-  redirectUrl = env.URL
+  message = "Authentication required",
+  redirectUrl = "/"
 ) {
   return httpErrors(401, message, {
     redirectUrl,
     id: "authentication_required",
+  });
+}
+
+export function InvalidAuthenticationError(
+  message = "Invalid authentication",
+  redirectUrl = "/"
+) {
+  return httpErrors(401, message, {
+    redirectUrl,
+    id: "invalid_authentication",
   });
 }
 
@@ -16,6 +31,14 @@ export function AuthorizationError(
 ) {
   return httpErrors(403, message, {
     id: "permission_required",
+  });
+}
+
+export function RateLimitExceededError(
+  message = "Rate limit exceeded for this operation"
+) {
+  return httpErrors(429, message, {
+    id: "rate_limit_exceeded",
   });
 }
 
@@ -112,7 +135,7 @@ export function MaximumTeamsError(
 
 export function EmailAuthenticationRequiredError(
   message = "User must authenticate with email",
-  redirectUrl = env.URL
+  redirectUrl = "/"
 ) {
   return httpErrors(400, message, {
     redirectUrl,
@@ -144,16 +167,6 @@ export function GmailAccountCreationError(
   });
 }
 
-export function AuthRedirectError(
-  message = "Redirect to the correct domain after authentication",
-  redirectUrl: string
-) {
-  return httpErrors(400, message, {
-    id: "auth_redirect",
-    redirectUrl,
-  });
-}
-
 export function OIDCMalformedUserInfoError(
   message = "User profile information malformed"
 ) {
@@ -164,7 +177,7 @@ export function OIDCMalformedUserInfoError(
 
 export function AuthenticationProviderDisabledError(
   message = "Authentication method has been disabled by an admin",
-  redirectUrl = env.URL
+  redirectUrl = "/"
 ) {
   return httpErrors(400, message, {
     redirectUrl,

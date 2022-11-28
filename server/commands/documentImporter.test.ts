@@ -2,11 +2,16 @@ import path from "path";
 import fs from "fs-extra";
 import Attachment from "@server/models/Attachment";
 import { buildUser } from "@server/test/factories";
-import { flushdb } from "@server/test/support";
+import { getTestDatabase } from "@server/test/support";
 import documentImporter from "./documentImporter";
 
 jest.mock("../utils/s3");
-beforeEach(() => flushdb());
+
+const db = getTestDatabase();
+
+afterAll(db.disconnect);
+
+beforeEach(db.flush);
 
 describe("documentImporter", () => {
   const ip = "127.0.0.1";
@@ -146,6 +151,21 @@ describe("documentImporter", () => {
     });
     expect(response.text).toContain("This is a test paragraph");
     expect(response.title).toEqual("Heading 1");
+  });
+
+  it("should handle only title", async () => {
+    const user = await buildUser();
+    const fileName = "markdown.md";
+    const content = `# Title`;
+    const response = await documentImporter({
+      user,
+      mimeType: "text/plain",
+      fileName,
+      content,
+      ip,
+    });
+    expect(response.text).toEqual("");
+    expect(response.title).toEqual("Title");
   });
 
   it("should fallback to extension if mimetype unknown", async () => {
