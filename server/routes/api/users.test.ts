@@ -1,7 +1,6 @@
 import { buildTeam, buildAdmin, buildUser } from "@server/test/factories";
-import { seed, getTestDatabase, getTestServer } from "@server/test/support";
+import { seed, getTestServer } from "@server/test/support";
 
-const db = getTestDatabase();
 const server = getTestServer();
 
 beforeAll(() => {
@@ -9,10 +8,7 @@ beforeAll(() => {
 });
 afterAll(() => {
   jest.useRealTimers();
-  server.disconnect();
 });
-
-beforeEach(db.flush);
 
 describe("#users.list", () => {
   it("should allow filtering by user name", async () => {
@@ -391,6 +387,46 @@ describe("#users.update", () => {
     const body = await res.json();
     expect(res.status).toEqual(200);
     expect(body.data.name).toEqual("New name");
+  });
+
+  it("should fail upon sending invalid user preference", async () => {
+    const { user } = await seed();
+    const res = await server.post("/api/users.update", {
+      body: {
+        token: user.getJwtToken(),
+        name: "New name",
+        preferences: { invalidPreference: "invalidValue" },
+      },
+    });
+    expect(res.status).toEqual(400);
+  });
+
+  it("should fail upon sending invalid user preference value", async () => {
+    const { user } = await seed();
+    const res = await server.post("/api/users.update", {
+      body: {
+        token: user.getJwtToken(),
+        name: "New name",
+        preferences: { rememberLastPath: "invalidValue" },
+      },
+    });
+    expect(res.status).toEqual(400);
+  });
+
+  it("should update rememberLastPath user preference", async () => {
+    const { user } = await seed();
+    const res = await server.post("/api/users.update", {
+      body: {
+        token: user.getJwtToken(),
+        name: "New name",
+        preferences: {
+          rememberLastPath: true,
+        },
+      },
+    });
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.data.preferences.rememberLastPath).toBe(true);
   });
 
   it("should require authentication", async () => {

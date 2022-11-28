@@ -25,13 +25,14 @@ import { NotFoundError } from "~/utils/errors";
 import { uploadFile } from "~/utils/files";
 import history from "~/utils/history";
 import { isModKey } from "~/utils/keyboard";
+import { sharedDocumentPath } from "~/utils/routeHelpers";
 import { isHash } from "~/utils/urls";
 import DocumentBreadcrumb from "./DocumentBreadcrumb";
 
 const LazyLoadedEditor = React.lazy(
   () =>
     import(
-      /* webpackChunkName: "shared-editor" */
+      /* webpackChunkName: "preload-shared-editor" */
       "~/editor"
     )
 );
@@ -56,10 +57,12 @@ export type Props = Optional<
 
 function Editor(props: Props, ref: React.RefObject<SharedEditor> | null) {
   const { id, shareId, onChange, onHeadingsChange } = props;
-  const { documents } = useStores();
+  const { documents, auth } = useStores();
   const { showToast } = useToasts();
   const dictionary = useDictionary();
   const embeds = useEmbeds(!shareId);
+  const preferences = auth.user?.preferences;
+
   const [
     activeLinkEvent,
     setActiveLinkEvent,
@@ -159,8 +162,10 @@ function Editor(props: Props, ref: React.RefObject<SharedEditor> | null) {
           }
         }
 
-        if (shareId) {
-          navigateTo = `/share/${shareId}${navigateTo}`;
+        // If we're navigating to an internal document link then prepend the
+        // share route to the URL so that the document is loaded in context
+        if (shareId && navigateTo.includes("/doc/")) {
+          navigateTo = sharedDocumentPath(shareId, navigateTo);
         }
 
         history.push(navigateTo);
@@ -283,6 +288,7 @@ function Editor(props: Props, ref: React.RefObject<SharedEditor> | null) {
           uploadFile={onUploadFile}
           onShowToast={showToast}
           embeds={embeds}
+          userPreferences={preferences}
           dictionary={dictionary}
           {...props}
           onHoverLink={handleLinkActive}

@@ -6,13 +6,11 @@ import Router from "koa-router";
 import { Op } from "sequelize";
 import accountProvisioner from "@server/commands/accountProvisioner";
 import errorHandling from "@server/middlewares/errorHandling";
-import methodOverride from "@server/middlewares/methodOverride";
 import { Group, GroupUser } from "@server/models";
 import { signIn } from "@server/utils/authentication";
 import { assertPresent } from "@server/validation";
 
 const router = new Router();
-router.use(methodOverride());
 
 const baseUrl = process.env.KOMPASSI_BASE_URL || "https://kompassi.eu";
 const clientId = process.env.KOMPASSI_CLIENT_ID || "";

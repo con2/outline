@@ -43,13 +43,12 @@ export default function auth(options: AuthenticationOptions = {}) {
         );
       }
     } else if (
-      ctx.body &&
-      typeof ctx.body === "object" &&
-      "token" in ctx.body
+      ctx.request.body &&
+      typeof ctx.request.body === "object" &&
+      "token" in ctx.request.body
     ) {
-      // @ts-expect-error ts-migrate(2571) FIXME: Object is of type 'unknown'.
-      token = ctx.body.token;
-    } else if (ctx.request.query.token) {
+      token = ctx.request.body.token;
+    } else if (ctx.request.query?.token) {
       token = ctx.request.query.token;
     } else {
       token = ctx.cookies.get("accessToken");
@@ -123,7 +122,7 @@ export default function auth(options: AuthenticationOptions = {}) {
       }
 
       // not awaiting the promise here so that the request is not blocked
-      user.updateActiveAt(ctx.request.ip).catch((err) => {
+      user.updateActiveAt(ctx).catch((err) => {
         Logger.error("Failed to update user activeAt", err);
       });
 

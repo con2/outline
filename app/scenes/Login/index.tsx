@@ -19,6 +19,7 @@ import PageTitle from "~/components/PageTitle";
 import TeamLogo from "~/components/TeamLogo";
 import Text from "~/components/Text";
 import env from "~/env";
+import useLastVisitedPath from "~/hooks/useLastVisitedPath";
 import useQuery from "~/hooks/useQuery";
 import useStores from "~/hooks/useStores";
 import isCloudHosted from "~/utils/isCloudHosted";
@@ -34,17 +35,9 @@ function Header({ config }: { config?: Config | undefined }) {
     return null;
   }
 
-  if (isSubdomain) {
-    return (
-      <Back href={env.URL}>
-        <BackIcon color="currentColor" /> {t("Back to home")}
-      </Back>
-    );
-  }
-
   return (
-    <Back href="https://www.getoutline.com">
-      <BackIcon color="currentColor" /> {t("Back to website")}
+    <Back href={isSubdomain ? env.URL : "https://www.getoutline.com"}>
+      <BackIcon color="currentColor" /> {t("Back to home")}
     </Back>
   );
 }
@@ -62,6 +55,9 @@ function Login({ children }: Props) {
   const [error, setError] = React.useState(null);
   const [emailLinkSentTo, setEmailLinkSentTo] = React.useState("");
   const isCreate = location.pathname === "/create";
+  const rememberLastPath = !!auth.user?.preferences?.rememberLastPath;
+  const [lastVisitedPath] = useLastVisitedPath();
+
   const handleReset = React.useCallback(() => {
     setEmailLinkSentTo("");
   }, []);
@@ -90,6 +86,14 @@ function Login({ children }: Props) {
       setCookie("signupQueryParams", JSON.stringify(entries));
     }
   }, [query]);
+
+  if (
+    auth.authenticated &&
+    rememberLastPath &&
+    lastVisitedPath !== location.pathname
+  ) {
+    return <Redirect to={lastVisitedPath} />;
+  }
 
   if (auth.authenticated && auth.team?.defaultCollectionId) {
     return <Redirect to={`/collection/${auth.team?.defaultCollectionId}`} />;
@@ -160,26 +164,30 @@ function Login({ children }: Props) {
     <Background>
       <Header config={config} />
       <Centered align="center" justify="center" gap={12} column auto>
-        <PageTitle title={t("Login")} />
+        <PageTitle
+          title={config.name ? `${config.name} – ${t("Login")}` : t("Login")}
+        />
         <Logo>
-          {env.TEAM_LOGO && !isCloudHosted ? (
-            <TeamLogo src={env.TEAM_LOGO} />
+          {config.logo ? (
+            <TeamLogo size={48} src={config.logo} />
           ) : (
-            <OutlineLogo size={38} fill="currentColor" />
+            <OutlineLogo size={42} fill="currentColor" />
           )}
         </Logo>
         {isCreate ? (
           <>
-            <StyledHeading centered>{t("Create an account")}</StyledHeading>
-            <GetStarted>
+            <StyledHeading as="h2" centered>
+              {t("Create a workspace")}
+            </StyledHeading>
+            <Content>
               {t(
-                "Get started by choosing a sign-in method for your new team below…"
+                "Get started by choosing a sign-in method for your new workspace below…"
               )}
-            </GetStarted>
+            </Content>
           </>
         ) : (
           <>
-            <StyledHeading centered>
+            <StyledHeading as="h2" centered>
               {t("Login to {{ authProviderName }}", {
                 authProviderName: config.name || "Outline",
               })}
@@ -249,17 +257,20 @@ const Background = styled(Fade)`
 `;
 
 const Logo = styled.div`
-  height: 38px;
+  margin-bottom: -4px;
 `;
 
-const GetStarted = styled(Text)`
+const Content = styled(Text)`
+  color: ${(props) => props.theme.textSecondary};
   text-align: center;
-  margin-top: -12px;
+  margin-top: -8px;
 `;
 
 const Note = styled(Text)`
+  color: ${(props) => props.theme.textTertiary};
   text-align: center;
   font-size: 14px;
+  margin-top: 8px;
 
   em {
     font-style: normal;

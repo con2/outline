@@ -4,7 +4,7 @@ export default function present(team: Team) {
   return {
     id: team.id,
     name: team.name,
-    avatarUrl: team.logoUrl,
+    avatarUrl: team.avatarUrl,
     sharing: team.sharing,
     memberCollectionCreate: team.memberCollectionCreate,
     collaborativeEditing: team.collaborativeEditing,
@@ -16,6 +16,7 @@ export default function present(team: Team) {
     url: team.url,
     defaultUserRole: team.defaultUserRole,
     inviteRequired: team.inviteRequired,
-    allowedDomains: team.allowedDomains.map((d) => d.name),
+    allowedDomains: team.allowedDomains?.map((d) => d.name),
+    preferences: team.preferences,
   };
 }

@@ -13,18 +13,20 @@ type Props = {
   id?: string;
   shareId?: string;
   user?: User;
+  includeState?: boolean;
 };
 
 type Result = {
   document: Document;
   share?: Share;
-  collection: Collection;
+  collection?: Collection | null;
 };
 
 export default async function loadDocument({
   id,
   shareId,
   user,
+  includeState,
 }: Props): Promise<Result> {
   let document;
   let collection;
@@ -156,6 +158,7 @@ export default async function loadDocument({
     document = await Document.findByPk(id as string, {
       userId: user ? user.id : undefined,
       paranoid: false,
+      includeState,
     });
 
     if (!document) {

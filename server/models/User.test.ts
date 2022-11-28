@@ -1,10 +1,10 @@
 import { CollectionPermission } from "@shared/types";
 import { buildUser, buildTeam, buildCollection } from "@server/test/factories";
-import { getTestDatabase } from "@server/test/support";
+import { setupTestDatabase } from "@server/test/support";
 import CollectionUser from "./CollectionUser";
 import UserAuthentication from "./UserAuthentication";
 
-const db = getTestDatabase();
+setupTestDatabase();
 
 beforeAll(() => {
   jest.useFakeTimers().setSystemTime(new Date("2018-01-02T00:00:00.000Z"));
@@ -12,10 +12,7 @@ beforeAll(() => {
 
 afterAll(() => {
   jest.useRealTimers();
-  db.disconnect();
 });
-
-beforeEach(db.flush);
 
 describe("user model", () => {
   describe("destroy", () => {
@@ -26,12 +23,26 @@ describe("user model", () => {
       expect(await UserAuthentication.count()).toBe(0);
     });
   });
+
   describe("getJwtToken", () => {
     it("should set JWT secret", async () => {
       const user = await buildUser();
       expect(user.getJwtToken()).toBeTruthy();
     });
   });
+
+  describe("availableTeams", () => {
+    it("should return teams where another user with the same email exists", async () => {
+      const user = await buildUser();
+      const anotherUser = await buildUser({ email: user.email });
+
+      const response = await user.availableTeams();
+      expect(response.length).toEqual(2);
+      expect(response[0].id).toEqual(user.teamId);
+      expect(response[1].id).toEqual(anotherUser.teamId);
+    });
+  });
+
   describe("collectionIds", () => {
     it("should return read_write collections", async () => {
       const team = await buildTeam();

@@ -58,11 +58,13 @@ const Wrapper = styled.div<{
   flex?: boolean;
   short?: boolean;
   minHeight?: number;
+  minWidth?: number;
   maxHeight?: number;
 }>`
   flex: ${(props) => (props.flex ? "1" : "0")};
   width: ${(props) => (props.short ? "49%" : "auto")};
   max-width: ${(props) => (props.short ? "350px" : "100%")};
+  min-width: ${({ minWidth }) => (minWidth ? `${minWidth}px` : "initial")};
   min-height: ${({ minHeight }) => (minHeight ? `${minHeight}px` : "0")};
   max-height: ${({ maxHeight }) => (maxHeight ? `${maxHeight}px` : "initial")};
 `;
@@ -173,7 +175,7 @@ class Input extends React.Component<Props> {
             {type === "textarea" ? (
               <RealTextarea
                 ref={this.props.innerRef}
-                onBlur={this.props.onBlur}
+                onBlur={this.handleBlur}
                 onFocus={this.handleFocus}
                 hasIcon={!!icon}
                 {...rest}
@@ -181,7 +183,7 @@ class Input extends React.Component<Props> {
             ) : (
               <RealInput
                 ref={this.props.innerRef}
-                onBlur={this.props.onBlur}
+                onBlur={this.handleBlur}
                 onFocus={this.handleFocus}
                 hasIcon={!!icon}
                 type={type}

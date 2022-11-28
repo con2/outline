@@ -2,7 +2,6 @@ import Router from "koa-router";
 
 import accountProvisioner from "@server/commands/accountProvisioner";
 import errorHandling from "@server/middlewares/errorHandling";
-import methodOverride from "@server/middlewares/methodOverride";
 import { signIn } from "@server/utils/authentication";
 
 const router = new Router();
@@ -12,8 +11,6 @@ export const config = {
   name: "Local",
   enabled,
 };
-
-router.use(methodOverride());
 
 if (enabled) {
   router.get("local", errorHandling(), async (ctx) => {

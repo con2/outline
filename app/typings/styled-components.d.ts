@@ -16,7 +16,6 @@ declare module "styled-components" {
     tableDivider: string;
     tableSelected: string;
     tableSelectedBackground: string;
-    tableHeaderBackground: string;
     quote: string;
     codeBackground: string;
     codeBorder: string;
@@ -116,6 +115,8 @@ declare module "styled-components" {
     cursor: string;
     textSecondary: string;
     textTertiary: string;
+    textDeleted: string;
+    textDeletedBackground: string;
     placeholder: string;
     sidebarBackground: string;
     sidebarActiveBackground: string;

@@ -1,10 +1,10 @@
-import Koa, { DefaultContext, DefaultState } from "koa";
+import Koa, { BaseContext, DefaultContext, DefaultState } from "koa";
 import bodyParser from "koa-body";
 import Router from "koa-router";
+import userAgent, { UserAgentContext } from "koa-useragent";
 import env from "@server/env";
 import { NotFoundError } from "@server/errors";
 import errorHandling from "@server/middlewares/errorHandling";
-import methodOverride from "@server/middlewares/methodOverride";
 import { defaultRateLimiter } from "@server/middlewares/rateLimiter";
 import { AuthenticatedState } from "@server/types";
 import apiKeys from "./apiKeys";
@@ -50,7 +50,7 @@ api.use(
     },
   })
 );
-api.use(methodOverride());
+api.use<BaseContext, UserAgentContext>(userAgent);
 api.use(apiWrapper());
 api.use(editor());
 

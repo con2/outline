@@ -1,5 +1,5 @@
 import Router from "koa-router";
-import { compact } from "lodash";
+import { compact, isEmpty } from "lodash";
 import { ValidationError } from "@server/errors";
 import auth from "@server/middlewares/authentication";
 import { WebhookSubscription, Event } from "@server/models";
@@ -41,7 +41,7 @@ router.post(
     const { user } = ctx.state;
     authorize(user, "createWebhookSubscription", user.team);
 
-    const { name, url } = ctx.request.body;
+    const { name, url, secret } = ctx.request.body;
     const events: string[] = compact(ctx.request.body.events);
     assertPresent(name, "name is required");
     assertPresent(url, "url is required");
@@ -57,6 +57,7 @@ router.post(
       teamId: user.teamId,
       url,
       enabled: true,
+      secret: isEmpty(secret) ? undefined : secret,
     });
 
     const event: WebhookSubscriptionEvent = {
@@ -83,7 +84,7 @@ router.post(
   "webhookSubscriptions.delete",
   auth({ admin: true }),
   async (ctx) => {
-    const { id } = ctx.body;
+    const { id } = ctx.request.body;
     assertUuid(id, "id is required");
     const { user } = ctx.state;
     const webhookSubscription = await WebhookSubscription.findByPk(id);
@@ -112,11 +113,11 @@ router.post(
   "webhookSubscriptions.update",
   auth({ admin: true }),
   async (ctx) => {
-    const { id } = ctx.body;
+    const { id } = ctx.request.body;
     assertUuid(id, "id is required");
     const { user } = ctx.state;
 
-    const { name, url } = ctx.request.body;
+    const { name, url, secret } = ctx.request.body;
     const events: string[] = compact(ctx.request.body.events);
     assertPresent(name, "name is required");
     assertPresent(url, "url is required");
@@ -129,7 +130,13 @@ router.post(
 
     authorize(user, "update", webhookSubscription);
 
-    await webhookSubscription.update({ name, url, events, enabled: true });
+    await webhookSubscription.update({
+      name,
+      url,
+      events,
+      enabled: true,
+      secret: isEmpty(secret) ? undefined : secret,
+    });
 
     const event: WebhookSubscriptionEvent = {
       name: "webhook_subscriptions.update",

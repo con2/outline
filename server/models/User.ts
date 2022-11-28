@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { addMinutes, subMinutes } from "date-fns";
 import JWT from "jsonwebtoken";
+import { Context } from "koa";
 import { Transaction, QueryTypes, SaveOptions, Op } from "sequelize";
 import {
   Table,
@@ -20,13 +21,21 @@ import {
   IsDate,
   IsUrl,
   AllowNull,
+  AfterUpdate,
 } from "sequelize-typescript";
 import { languages } from "@shared/i18n";
-import { CollectionPermission } from "@shared/types";
+import {
+  CollectionPermission,
+  UserPreference,
+  UserPreferences,
+} from "@shared/types";
 import { stringToColor } from "@shared/utils/color";
 import env from "@server/env";
+import DeleteAttachmentTask from "@server/queues/tasks/DeleteAttachmentTask";
+import parseAttachmentIds from "@server/utils/parseAttachmentIds";
 import { ValidationError } from "../errors";
 import ApiKey from "./ApiKey";
+import Attachment from "./Attachment";
 import Collection from "./Collection";
 import CollectionUser from "./CollectionUser";
 import NotificationSetting from "./NotificationSetting";
@@ -48,6 +57,8 @@ import NotContainsUrl from "./validators/NotContainsUrl";
 export enum UserFlag {
   InviteSent = "inviteSent",
   InviteReminderSent = "inviteReminderSent",
+  DesktopWeb = "desktopWeb",
+  MobileWeb = "mobileWeb",
 }
 
 export enum UserRole {
@@ -153,6 +164,10 @@ class User extends ParanoidModel {
   @Column(DataType.JSONB)
   flags: { [key in UserFlag]?: number } | null;
 
+  @AllowNull
+  @Column(DataType.JSONB)
+  preferences: UserPreferences | null;
+
   @Default(env.DEFAULT_LANGUAGE)
   @IsIn([languages])
   @Column
@@ -160,22 +175,16 @@ class User extends ParanoidModel {
 
   @AllowNull
   @IsUrl
-  @Length({ max: 1000, msg: "avatarUrl must be less than 1000 characters" })
+  @Length({ max: 4096, msg: "avatarUrl must be less than 4096 characters" })
   @Column(DataType.STRING)
   get avatarUrl() {
     const original = this.getDataValue("avatarUrl");
 
-    if (original) {
+    if (original && !original.startsWith("https://tiley.herokuapp.com")) {
       return original;
     }
 
-    const color = this.color.replace(/^#/, "");
-    const initial = this.name ? this.name[0] : "?";
-    const hash = crypto
-      .createHash("md5")
-      .update(this.email || "")
-      .digest("hex");
-    return `${env.DEFAULT_AVATAR_HOST}/avatar/${hash}/${initial}.png?c=${color}`;
+    return null;
   }
 
   set avatarUrl(value: string | null) {
@@ -257,8 +266,11 @@ class User extends ParanoidModel {
     if (!this.flags) {
       this.flags = {};
     }
-    this.flags[flag] = value ? 1 : 0;
-    this.changed("flags", true);
+    const binary = value ? 1 : 0;
+    if (this.flags[flag] !== binary) {
+      this.flags[flag] = binary;
+      this.changed("flags", true);
+    }
 
     return this.flags;
   };
@@ -291,6 +303,34 @@ class User extends ParanoidModel {
     return this.flags;
   };
 
+  /**
+   * Preferences set by the user that decide application behavior and ui.
+   *
+   * @param preference The user preference to set
+   * @param value Sets the preference value
+   * @returns The current user preferences
+   */
+  public setPreference = (preference: UserPreference, value: boolean) => {
+    if (!this.preferences) {
+      this.preferences = {};
+    }
+    this.preferences[preference] = value;
+    this.changed("preferences", true);
+
+    return this.preferences;
+  };
+
+  /**
+   * Returns the passed preference value
+   *
+   * @param preference The user preference to retrieve
+   * @param fallback An optional fallback value, defaults to false.
+   * @returns The preference value if set, else undefined
+   */
+  public getPreference = (preference: UserPreference, fallback = false) => {
+    return this.preferences?.[preference] ?? fallback;
+  };
+
   collectionIds = async (options = {}) => {
     const collectionStubs = await Collection.scope({
       method: ["withMembership", this.id],
@@ -314,7 +354,8 @@ class User extends ParanoidModel {
       .map((c) => c.id);
   };
 
-  updateActiveAt = async (ip: string, force = false) => {
+  updateActiveAt = async (ctx: Context, force = false) => {
+    const { ip } = ctx.request;
     const fiveMinutesAgo = subMinutes(new Date(), 5);
 
     // ensure this is updated only every few minutes otherwise
@@ -322,13 +363,20 @@ class User extends ParanoidModel {
     if (!this.lastActiveAt || this.lastActiveAt < fiveMinutesAgo || force) {
       this.lastActiveAt = new Date();
       this.lastActiveIp = ip;
-
-      return this.save({
-        hooks: false,
-      });
     }
 
-    return this;
+    // Track the clients each user is using
+    if (ctx.userAgent?.isMobile) {
+      this.setFlag(UserFlag.MobileWeb);
+    }
+    if (ctx.userAgent?.isDesktop) {
+      this.setFlag(UserFlag.DesktopWeb);
+    }
+
+    // Save only writes to the database if there are changes
+    return this.save({
+      hooks: false,
+    });
   };
 
   updateSignedIn = (ip: string) => {
@@ -404,6 +452,23 @@ class User extends ParanoidModel {
       },
       this.jwtSecret
     );
+  };
+
+  /**
+   * Returns a list of teams that have a user matching this user's email.
+   *
+   * @returns A promise resolving to a list of teams
+   */
+  availableTeams = async () => {
+    return Team.findAll({
+      include: [
+        {
+          model: this.constructor as typeof User,
+          required: true,
+          where: { email: this.email },
+        },
+      ],
+    });
   };
 
   demote = async (to: UserRole, options?: SaveOptions<User>) => {
@@ -512,6 +577,36 @@ class User extends ParanoidModel {
     model.jwtSecret = crypto.randomBytes(64).toString("hex");
   };
 
+  @AfterUpdate
+  static deletePreviousAvatar = async (model: User) => {
+    if (
+      model.previous("avatarUrl") &&
+      model.previous("avatarUrl") !== model.avatarUrl
+    ) {
+      const attachmentIds = parseAttachmentIds(
+        model.previous("avatarUrl"),
+        true
+      );
+      if (!attachmentIds.length) {
+        return;
+      }
+
+      const attachment = await Attachment.findOne({
+        where: {
+          id: attachmentIds[0],
+          teamId: model.teamId,
+          userId: model.id,
+        },
+      });
+
+      if (attachment) {
+        await DeleteAttachmentTask.schedule({
+          attachmentId: attachment.id,
+        });
+      }
+    }
+  };
+
   // By default when a user signs up we subscribe them to email notifications
   // when documents they created are edited by other team members and onboarding.
   // If the user is an admin, they will also be subscribed to export_completed
@@ -570,7 +665,7 @@ class User extends ParanoidModel {
 
   static getCounts = async function (teamId: string) {
     const countSql = `
-      SELECT 
+      SELECT
         COUNT(CASE WHEN "suspendedAt" IS NOT NULL THEN 1 END) as "suspendedCount",
         COUNT(CASE WHEN "isAdmin" = true THEN 1 END) as "adminCount",
         COUNT(CASE WHEN "isViewer" = true THEN 1 END) as "viewerCount",

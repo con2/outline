@@ -20,7 +20,7 @@ const UserListItem = ({ user, showMenu }: Props) => {
   return (
     <ListItem
       title={<Title>{user.name}</Title>}
-      image={<Avatar src={user.avatarUrl} size={32} />}
+      image={<Avatar model={user} size={32} />}
       subtitle={
         <>
           {user.email ? `${user.email} · ` : undefined}
@@ -43,7 +43,7 @@ const UserListItem = ({ user, showMenu }: Props) => {
 const Title = styled.span`
   &:hover {
     text-decoration: underline;
-    cursor: pointer;
+    cursor: var(--pointer);
   }
 `;
 
