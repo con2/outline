@@ -26,5 +26,6 @@ smtp_from_email: root@tracon.fi
 kompassi_team_name: Con2
 kompassi_access_groups:
   - users
+  - con2-staff
 kompassi_admin_groups:
   - admins
