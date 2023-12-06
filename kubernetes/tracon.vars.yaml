@@ -37,6 +37,10 @@ kompassi_access_groups:
   - turska-hitpoint2023-labour-info
   - turska-hitpoint2023-labour-accepted
   - turska-hitpoint2023-programme-hosts
+  - turska-hitpoint2024-labour-conitea
+  - turska-hitpoint2024-labour-info
+  - turska-hitpoint2024-labour-accepted
+  - turska-hitpoint2024-programme-hosts
   - outline-tracon-users
   - traconry-hallitus-nykyinen
 kompassi_admin_groups:
