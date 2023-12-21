@@ -58,3 +58,4 @@ jobs:
           emskaffolden -E tracon -- deploy -n outline-tracon -a build.json
           emskaffolden -E kuplii -- deploy -n outline-kuplii -a build.json
           emskaffolden -E ropecon -- deploy -n outline-ropecon -a build.json
+          emskaffolden -E kotae -- deploy -n outline-kotae -a build.json
