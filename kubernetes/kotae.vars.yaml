@@ -27,5 +27,7 @@ kompassi_team_name: Kotae
 kompassi_access_groups:
   - turska-kotaeexpo2024-labour-vastaava
   - turska-kotaeexpo2024-labour-accepted
+  - turska-kotaeexpo2025-labour-vastaava
+  - turska-kotaeexpo2025-labour-accepted
 kompassi_admin_groups:
   - admins
