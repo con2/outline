@@ -25,14 +25,14 @@ smtp_from_email: root@tracon.fi
 
 kompassi_team_name: Tracon
 kompassi_access_groups:
-  - turska-tracon2023-labour-conitea
-  - turska-tracon2023-labour-info
-  - turska-tracon2023-labour-accepted
-  - turska-tracon2023-programme-hosts
   - turska-tracon2024-labour-conitea
   - turska-tracon2024-labour-info
   - turska-tracon2024-labour-accepted
   - turska-tracon2024-programme-hosts
+  - turska-tracon2025-labour-conitea
+  - turska-tracon2025-labour-info
+  - turska-tracon2025-labour-accepted
+  - turska-tracon2025-programme-hosts
   - turska-hitpoint2023-labour-conitea
   - turska-hitpoint2023-labour-info
   - turska-hitpoint2023-labour-accepted
