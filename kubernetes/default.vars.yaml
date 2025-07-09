@@ -12,6 +12,7 @@ outline_insecure_local_auth_enabled: false
 
 # Set this to the public hostname of your service.
 ingress_public_hostname: outline.localhost
+ingress_class_name: nginx
 
 # If you use ingress-nginx and cert-manager, TLS can be automatically configured by setting this to true.
 ingress_letsencrypt_enabled: false
