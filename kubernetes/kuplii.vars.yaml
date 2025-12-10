@@ -27,5 +27,6 @@ kompassi_team_name: Tampere Kuplii
 kompassi_access_groups:
   - turska-kuplii2024-labour-kuplitea
   - turska-kuplii2025-labour-kuplitea
+  - turska-kuplii2026-labour-kuplitea
 kompassi_admin_groups:
   - admins
