@@ -50,7 +50,6 @@ jobs:
         with:
           kubectl: "1.20.4"
           skaffold: "1.20.0"
-      - uses: docker/setup-buildx-action@v1
       - run: |
           python3 -m pip install -U pip setuptools wheel
           python3 -m pip install emskaffolden
