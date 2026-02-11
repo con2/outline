@@ -30,5 +30,8 @@ kompassi_access_groups:
   - turska-kotaeexpo2025-labour-vastaava
   - turska-kotaeexpo2025-labour-accepted
   - kotaeexpo2025-program-hosts
+  - turska-kotaeexpo2026-labour-vastaava
+  - turska-kotaeexpo2026-labour-accepted
+  - kotaeexpo2026-program-hosts
 kompassi_admin_groups:
   - admins
