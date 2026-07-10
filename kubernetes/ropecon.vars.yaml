@@ -27,7 +27,7 @@ kompassi_team_name: Ropecon
 kompassi_access_groups:
   - turska-ropecon2026-labour-conitea
   - turska-ropecon2026-labour-accepted
-  - ropecon2025-program-hosts
+  - ropecon2026-program-hosts
   - ropeconry-hallitus-nykyinen
 kompassi_admin_groups:
   - admins
