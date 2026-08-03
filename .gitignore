@@ -16,6 +16,9 @@ data/*
 *.cert
 .history
 
+# CON2: compiled emskaffolden/skaffold manifests
+*.compiled.yaml
+
 # Yarn Berry
 .yarn/*
 !.yarn/patches

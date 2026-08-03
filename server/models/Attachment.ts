@@ -93,7 +93,9 @@ class Attachment extends IdModel<
    * Whether the attachment is private or not.
    */
   get isPrivate() {
-    return this.acl === "private";
+    // CON2: minio doesn't seem to support per-object ACL, so sign all URLs
+    // return this.acl === "private";
+    return true;
   }
 
   /**

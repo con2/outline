@@ -1,0 +1,31 @@
+ingress_public_hostname: outline.con2.fi
+
+postgres_managed: false
+postgres_hostname: siilo.tracon.fi
+postgres_database: outline
+postgres_username: outline
+postgres_ssl: true
+
+redis_managed: false
+redis_hostname: redis-ha-haproxy.redis-ha.svc.cluster.local
+redis_database: 11
+
+outline_secret_managed: false
+
+outline_setup_should_run: true
+
+ingress_letsencrypt_enabled: true
+ingress_letsencrypt_cluster_issuer: letsencrypt-prod
+
+aws_upload_bucket_url: https://minio.con2.fi
+aws_upload_bucket_name: outline
+
+smtp_hostname: sr1.pahaip.fi
+smtp_from_email: root@tracon.fi
+
+kompassi_team_name: Con2
+kompassi_access_groups:
+  - users
+  - con2-staff
+kompassi_admin_groups:
+  - admins
