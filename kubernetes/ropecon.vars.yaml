@@ -1,0 +1,36 @@
+ingress_public_hostname: wiki.ropecon.fi
+
+postgres_managed: false
+postgres_hostname: siilo.tracon.fi
+postgres_database: outlineropecon
+postgres_username: outlineropecon
+postgres_ssl: true
+
+redis_managed: false
+redis_hostname: redis-ha-haproxy.redis-ha.svc.cluster.local
+redis_database: 6
+
+outline_secret_managed: false
+
+outline_setup_should_run: true
+
+ingress_letsencrypt_enabled: true
+ingress_letsencrypt_cluster_issuer: letsencrypt-prod
+
+aws_upload_bucket_url: https://minio.con2.fi
+aws_upload_bucket_name: outlineropecon
+
+smtp_hostname: sr1.pahaip.fi
+smtp_from_email: root@tracon.fi
+
+kompassi_team_name: Ropecon
+kompassi_access_groups:
+  - turska-ropecon2026-labour-conitea
+  - turska-ropecon2026-labour-turvan-sihteerit
+  - turska-ropecon2026-labour-info
+  - turska-ropecon2026-labour-jv
+  - turska-ropecon2026-labour-accepted
+  - ropecon2026-program-hosts
+  - ropeconry-hallitus-nykyinen
+kompassi_admin_groups:
+  - admins

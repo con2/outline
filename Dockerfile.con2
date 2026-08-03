@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.2
+
+# Thin wrapper around Outline's own upstream final image (built unmodified
+# from `Dockerfile.base` + `Dockerfile`, see skaffold.in.yaml). Adds only what
+# con2's deployment needs on top: an entrypoint that derives DATABASE_URL from
+# POSTGRES_* environment variables.
+ARG APP_PATH=/opt/outline
+ARG UPSTREAM_IMAGE
+FROM $UPSTREAM_IMAGE
+
+ARG APP_PATH
+USER root
+ADD --chmod=0755 docker-entrypoint.sh $APP_PATH/
+USER nodejs
+
+ENTRYPOINT ["/opt/outline/docker-entrypoint.sh"]
+CMD ["node", "build/server/index.js"]
