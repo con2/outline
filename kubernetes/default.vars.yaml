@@ -12,7 +12,7 @@ outline_insecure_local_auth_enabled: false
 
 # Set this to the public hostname of your service.
 ingress_public_hostname: outline.localhost
-ingress_class_name: nginx
+ingress_class_name: traefik
 
 # If you use ingress-nginx and cert-manager, TLS can be automatically configured by setting this to true.
 ingress_letsencrypt_enabled: false
@@ -190,15 +190,16 @@ outline_environment:
         name: INSECURE_LOCAL_AUTH_ENABLED
         value: "yes"
 
-# Default annotations work for nginx ingress with or without LetsEncrypt TLS. Override if you need something else.
+# The https-redirect middleware must only be attached where TLS is actually configured
+# (not local/dev without letsencrypt) - see infrastructure/kubernetes/traefik-middlewares.yaml
+# for why this is a per-app opt-in Middleware rather than a global entrypoint redirect
+# (ACME HTTP-01 safety). The legacy kubernetes.io/ingress.class annotation is dropped -
+# redundant with ingressClassName on the Ingress spec, and not understood by Traefik.
 ingress_annotations: !If
   test: !Var ingress_letsencrypt_enabled
   then:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    kubernetes.io/ingress.class: "nginx"
-  else:
-    kubernetes.io/ingress.class: "nginx"
+    traefik.ingress.kubernetes.io/router.middlewares: default-https-redirect@kubernetescrd
 
 ingress_tls: !If
   test: !Var ingress_letsencrypt_enabled
