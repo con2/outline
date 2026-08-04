@@ -1,0 +1,6 @@
+{
+  "id": "kompassi",
+  "name": "Kompassi",
+  "priority": 10,
+  "description": "Adds an authentication provider and group sync backed by Kompassi's OIDC provider."
+}

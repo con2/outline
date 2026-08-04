@@ -1,0 +1,6 @@
+postgres_password: outline
+outline_secret_key: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+outline_utils_secret_key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+smtp_password: secret
+ingress_letsencrypt_enabled: false
+outline_insecure_local_auth_enabled: true
