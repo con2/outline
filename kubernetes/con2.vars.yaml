@@ -27,5 +27,7 @@ kompassi_team_name: Con2
 kompassi_access_groups:
   - users
   - con2-staff
+  - conikuvat-staff
+  - larppikuvat-staff
 kompassi_admin_groups:
   - admins
