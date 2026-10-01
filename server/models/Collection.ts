@@ -1,9 +1,10 @@
 /* oxlint-disable lines-between-class-members */
 import fractionalIndex from "fractional-index";
-import { find, findIndex, isNil, remove, uniq } from "es-toolkit/compat";
+import { find, findIndex, isNil, keyBy, remove, uniq } from "es-toolkit/compat";
 import type {
   Identifier,
   Transaction,
+  DestroyOptions,
   FindOptions,
   NonNullFindOptions,
   InferAttributes,
@@ -54,10 +55,14 @@ import { CollectionPermission, NavigationNodeType } from "@shared/types";
 import { UrlHelper } from "@shared/utils/UrlHelper";
 import { sortNavigationNodes } from "@shared/utils/collections";
 import slugify from "@shared/utils/slugify";
-import { CollectionValidation } from "@shared/validations";
+import {
+  CollectionValidation,
+  DeprecationValidation,
+} from "@shared/validations";
 import { parser } from "@server/editor";
 import { ValidationError } from "@server/errors";
 import type { APIContext } from "@server/types";
+import { LockHelper } from "@server/storage/LockHelper";
 import { CacheHelper } from "@server/utils/CacheHelper";
 import { RedisPrefixHelper } from "@server/utils/RedisPrefixHelper";
 import removeIndexCollision from "@server/utils/removeIndexCollision";
@@ -230,6 +235,11 @@ class Collection extends ParanoidModel<
   })
   @Column(DataType.STRING)
   description: string | null;
+
+  /** The reason this collection is archived. */
+  @Length({ max: DeprecationValidation.maxReasonLength })
+  @Column(DataType.TEXT)
+  deprecatedReason: string | null;
 
   /**
    * The content of the collection as JSON, this is a snapshot at the last time the state was saved.
@@ -409,7 +419,13 @@ class Collection extends ParanoidModel<
   }
 
   @BeforeDestroy
-  static async checkLastCollection(model: Collection) {
+  static async checkLastCollection(model: Collection, options: DestroyOptions) {
+    await LockHelper.acquire(
+      model.sequelize,
+      `collections:${model.teamId}`,
+      options.transaction
+    );
+
     const total = await this.count({
       where: {
         teamId: model.teamId,
@@ -422,9 +438,12 @@ class Collection extends ParanoidModel<
 
   @BeforeDestroy
   static async deleteDocuments(model: Collection, ctx: APIContext["context"]) {
+    // A bulk update rather than a destroy per document, so `deletedById` is
+    // written here instead of by the hook on ParanoidModel.
     await Document.update(
       {
         lastModifiedById: ctx.auth.user.id,
+        deletedById: ctx.auth.user.id,
         deletedAt: new Date(),
       },
       {
@@ -857,28 +876,73 @@ class Collection extends ParanoidModel<
     return this;
   };
 
-  deleteDocument = async (document: Document, options?: FindOptions) => {
-    await this.removeDocumentInStructure(document, options);
+  /**
+   * Updates the reason for archiving the collection.
+   *
+   * @param ctx the API context, including the acting user and transaction.
+   * @param reason the reason to save, or null to clear it.
+   * @returns the updated collection.
+   * @throws ValidationError if the collection is no longer archived.
+   */
+  updateDeprecatedReason = async (ctx: APIContext, reason: string | null) => {
+    const { transaction } = ctx.state;
 
-    // Helper to destroy all child documents for a document
-    const loopChildren = async (
-      documentId: string,
-      opts?: FindOptions<Document>
-    ) => {
+    if (transaction) {
+      await Collection.unscoped().findOne({
+        attributes: ["id"],
+        where: { id: this.id },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+        rejectOnEmpty: true,
+      });
+    }
+
+    await this.reload({ transaction });
+    if (!this.archivedAt || this.deletedAt) {
+      throw ValidationError("The collection must be archived");
+    }
+
+    this.deprecatedReason = reason?.trim() || null;
+    if (this.changed("deprecatedReason")) {
+      await this.saveWithCtx(ctx, { silent: true });
+    }
+    return this;
+  };
+
+  /**
+   * Removes a document from this collection's structure and soft deletes it
+   * along with all of its descendants.
+   *
+   * @param ctx the API context, which attributes the deletion to the acting user.
+   * @param document the document to delete.
+   */
+  deleteDocument = async (ctx: APIContext, document: Document) => {
+    const { transaction } = ctx.context;
+
+    await this.removeDocumentInStructure(document, { transaction });
+
+    // IDs come back breadth-first so reversing them destroys the deepest
+    // descendants first.
+    const childDocumentIds = (
+      await document.findAllChildDocumentIds(undefined, { transaction })
+    ).reverse();
+
+    if (childDocumentIds.length) {
       const childDocuments = await Document.findAll({
+        transaction,
         where: {
-          parentDocumentId: documentId,
+          id: childDocumentIds,
         },
       });
+      const childDocumentsById = keyBy(childDocuments, (child) => child.id);
 
-      for (const child of childDocuments) {
-        await loopChildren(child.id, opts);
-        await child.destroy(opts);
+      // Destroyed one at a time to ensure model hooks run for each document.
+      for (const childDocumentId of childDocumentIds) {
+        await childDocumentsById[childDocumentId]?.destroy(ctx.context);
       }
-    };
+    }
 
-    await loopChildren(document.id, options);
-    await document.destroy(options);
+    await document.destroy(ctx.context);
   };
 
   removeDocumentInStructure = async (

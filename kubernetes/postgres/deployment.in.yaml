@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app.kubernetes.io/part-of: outline
+    app.kubernetes.io/component: database
+    app.kubernetes.io/name: postgres
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: outline
+      app.kubernetes.io/component: database
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: outline
+        app.kubernetes.io/component: database
+        app.kubernetes.io/name: postgres
+    spec:
+      enableServiceLinks: false
+      containers:
+      - name: postgres
+        image: !Var postgres_image
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: !Var postgres_database
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: password
+        volumeMounts:
+        - mountPath: /var/lib/postgresql
+          name: postgres-data
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - outline
+          initialDelaySeconds: 15
+          periodSeconds: 30
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - outline
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: postgres-data

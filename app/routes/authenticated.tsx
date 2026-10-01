@@ -1,7 +1,7 @@
 import { observer } from "mobx-react";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import type { RouteComponentProps } from "react-router-dom";
-import { Switch, Redirect } from "react-router-dom";
+import { Switch, Redirect, matchPath, useLocation } from "react-router-dom";
 import DocumentNew from "~/scenes/DocumentNew";
 import Error404 from "~/scenes/Errors/Error404";
 import AuthenticatedLayout from "~/components/AuthenticatedLayout";
@@ -13,7 +13,8 @@ import WebsocketProvider from "~/components/WebsocketProvider";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
 import usePolicy from "~/hooks/usePolicy";
 import useQueryNotices from "~/hooks/useQueryNotices";
-import lazy from "~/utils/lazyWithRetry";
+import useKeyboardShortcutsQuery from "~/hooks/useKeyboardShortcutsQuery";
+import lazy from "@shared/utils/lazyWithRetry";
 import * as Scenes from "./scenes";
 import {
   archivePath,
@@ -50,8 +51,23 @@ const RedirectDocument = ({
  */
 function AuthenticatedRoutes() {
   useQueryNotices();
+  useKeyboardShortcutsQuery();
   const team = useCurrentTeam();
   const can = usePolicy(team);
+  const location = useLocation();
+
+  // Warm the editor chunks alongside the scene chunk so a document can render
+  // as soon as its data arrives.
+  useEffect(() => {
+    if (
+      matchPath(location.pathname, {
+        path: [`/doc/${documentSlug}`, `/d/${documentSlug}`],
+      })
+    ) {
+      Scenes.preloadEditor();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <WebsocketProvider>

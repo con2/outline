@@ -1,3 +1,12 @@
+![Con2 – Collaboration Hub for Volunteer-Run Conventions in Finland](https://con2.fi/media/uploads/2018/08/23/con2_wide_800.png)
+
+# Con2 distribution of Outline (outline.con2.fi)
+
+This is the Con2 distribution of Outline. We extend Outline to provide OIDC authentication against Kompassi (with custom group-based access control and group sync), and provide a production ready Docker/Kubernetes deployment.
+
+Original `README.md` follows.
+
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./public/logos/outline-logo-dark.png" height="29">
@@ -23,6 +32,10 @@ If you'd like to run your own copy of Outline or contribute to development then 
 # Installation
 
 Please see the [documentation](https://docs.getoutline.com/s/hosting/) for running your own copy of Outline in a production configuration.
+
+Available container images:
+* [![Container Image Release](https://img.shields.io/docker/v/outlinewiki/outline?sort=semver&label=Latest%20release)](https://hub.docker.com/r/outlinewiki/outline)
+* [![Container Image Nightly](https://img.shields.io/docker/v/outlinewiki/outline?sort=date&label=Latest%20development%20version)](https://hub.docker.com/r/outlinewiki/outline)
 
 If you have questions or improvements for the docs please create a thread in [GitHub discussions](https://github.com/outline/outline/discussions).
 

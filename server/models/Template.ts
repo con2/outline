@@ -1,4 +1,4 @@
-import { isUUID } from "class-validator";
+import isUUID from "validator/lib/isUUID";
 import type {
   Identifier,
   InferAttributes,
@@ -204,6 +204,16 @@ class Template extends ParanoidModel<
    */
   get isWorkspaceTemplate() {
     return !this.collectionId;
+  }
+
+  /**
+   * Returns whether this template is an unpublished draft, only visible to the
+   * user that created it.
+   *
+   * @returns boolean
+   */
+  get isDraft() {
+    return !this.publishedAt;
   }
 
   @BeforeValidate

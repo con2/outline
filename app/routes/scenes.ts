@@ -1,4 +1,6 @@
+import AsyncEditor from "~/components/AsyncEditor";
 import { createLazyComponent as lazy } from "~/components/LazyLoad";
+import AsyncMultiplayerEditor from "~/scenes/Document/components/AsyncMultiplayerEditor";
 
 /**
  * Lazy-loaded scenes for the authenticated routes. Defined separately from the
@@ -12,3 +14,15 @@ export const Drafts = lazy(() => import("~/scenes/Drafts"));
 export const Home = lazy(() => import("~/scenes/Home"));
 export const Search = lazy(() => import("~/scenes/Search"));
 export const Trash = lazy(() => import("~/scenes/Trash"));
+
+/**
+ * Warms the chunks required to render a document with an editable editor. Each
+ * of these is behind a separate lazy boundary that would otherwise only begin
+ * downloading once the previous one has rendered, so preloading them in
+ * parallel removes a request waterfall from the critical path.
+ */
+export function preloadEditor() {
+  void Document.preload();
+  void AsyncMultiplayerEditor.preload();
+  void AsyncEditor.preload();
+}

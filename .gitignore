@@ -16,6 +16,9 @@ data/*
 *.cert
 .history
 
+# CON2: compiled emskaffolden/skaffold manifests
+*.compiled.yaml
+
 # Yarn Berry
 .yarn/*
 !.yarn/patches
@@ -23,3 +26,6 @@ data/*
 !.yarn/releases
 .yarn/releases
 !.yarn/sdks
+
+# CON2: local FILE_STORAGE=local root used when testing against a database dump
+/data

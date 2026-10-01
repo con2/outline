@@ -3,7 +3,7 @@ import { CloseIcon } from "outline-icons";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css } from "styled-components";
-import { depths, s } from "@shared/styles";
+import { depths, s, borderRadius } from "@shared/styles";
 import type { ModelSelection } from "~/components/ModelSelection";
 import Flex from "~/components/Flex";
 import NudeButton from "~/components/NudeButton";
@@ -85,7 +85,6 @@ function ModelSelectionToolbar({ selection, actions }: Props) {
                   <Action
                     aria-label={action.label}
                     disabled={isProcessing}
-                    $dangerous={action.dangerous}
                     onClick={() => handlePerform(action)}
                   >
                     {action.icon}
@@ -138,7 +137,7 @@ const Wrapper = styled.div<{ $active: boolean }>`
 const Background = styled(Flex)`
   background-color: ${s("menuBackground")};
   box-shadow: ${s("menuShadow")};
-  border-radius: 8px;
+  ${borderRadius(8)}
   height: 40px;
   padding: 0 8px;
 `;
@@ -156,16 +155,19 @@ const Divider = styled.div`
   flex-shrink: 0;
 `;
 
-const Action = styled(NudeButton)<{ $dangerous?: boolean }>`
+const Action = styled(NudeButton)`
   width: 28px;
   height: 28px;
   color: ${s("textSecondary")};
 
+  &:last-child {
+    color: ${s("textTertiary")};
+  }
+
   &:hover:enabled,
   &[aria-expanded="true"] {
     background: ${s("sidebarControlHoverBackground")};
-    color: ${(props) =>
-      props.$dangerous ? props.theme.danger : props.theme.text};
+    color: ${s("text")};
   }
 
   &:disabled {

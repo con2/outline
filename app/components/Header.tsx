@@ -1,6 +1,6 @@
 import { throttle } from "es-toolkit/compat";
 import { observer } from "mobx-react";
-import { CloseIcon, MenuIcon } from "outline-icons";
+import { CloseIcon, MenuIcon, SidebarIcon } from "outline-icons";
 import { transparentize } from "polished";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
@@ -8,11 +8,14 @@ import { mergeRefs } from "react-merge-refs";
 import styled from "styled-components";
 import breakpoint from "styled-components-breakpoint";
 import useMeasure from "react-use-measure";
+import { HEADER_HEIGHT } from "@shared/constants";
 import { depths, s } from "@shared/styles";
+import { metaDisplay } from "@shared/utils/keyboard";
 import { supportsPassiveListener } from "@shared/utils/browser";
 import Button from "~/components/Button";
 import Fade from "~/components/Fade";
 import Flex from "~/components/Flex";
+import { useSidebarCollapsed } from "~/components/SidebarCollapsedContext";
 import { useSplitView } from "~/components/SplitView/context";
 import Tooltip from "~/components/Tooltip";
 import useEventListener from "~/hooks/useEventListener";
@@ -24,7 +27,7 @@ import history from "~/utils/history";
 import { closeSplitPane } from "~/utils/splitView";
 import { TooltipProvider } from "./TooltipContext";
 
-export const HEADER_HEIGHT = 64;
+export { HEADER_HEIGHT };
 
 type Props = {
   left?: React.ReactNode;
@@ -34,17 +37,17 @@ type Props = {
     | React.ReactNode;
   hasSidebar?: boolean;
   className?: string;
+  ref?: React.Ref<HTMLDivElement>;
 };
 
-function Header(
-  { left, title, actions, hasSidebar, className }: Props,
-  ref: React.RefObject<HTMLDivElement> | null
-) {
+function Header({ left, title, actions, hasSidebar, className, ref }: Props) {
   const { ui } = useStores();
   const { t } = useTranslation();
   const { pane, isSplitView } = useSplitView();
   const isMobile = useMobile();
+  const sidebarCollapsed = useSidebarCollapsed();
   const hasMobileSidebar = hasSidebar && isMobile;
+  const hasDesktopSidebar = hasSidebar && !isMobile;
   const [internalMeasureRef, size] = useMeasure();
   const [breadcrumbsMeasureRef, breadcrumbsSize] = useMeasure();
   const passThrough = !actions && !left && !title && !isSplitView;
@@ -95,6 +98,28 @@ function Header(
         $passThrough={passThrough}
         $insetTitleAdjust={ui.sidebarIsClosed && Desktop.hasInsetTitlebar()}
       >
+        {hasDesktopSidebar && (
+          <SidebarToggle
+            $visible={sidebarCollapsed}
+            aria-hidden={!sidebarCollapsed}
+          >
+            <Tooltip
+              content={t("Toggle sidebar")}
+              shortcut={`${metaDisplay}+.`}
+              side="bottom"
+            >
+              <SidebarToggleButton
+                $visible={sidebarCollapsed}
+                aria-label={t("Expand sidebar")}
+                onClick={ui.toggleCollapsedSidebar}
+                icon={<SidebarIcon />}
+                tabIndex={sidebarCollapsed ? undefined : -1}
+                neutral
+                borderOnHover
+              />
+            </Tooltip>
+          </SidebarToggle>
+        )}
         {left || hasMobileSidebar ? (
           <Breadcrumbs ref={setBreadcrumbRef}>
             {hasMobileSidebar && (
@@ -207,7 +232,7 @@ const Wrapper = styled(Flex)<WrapperProps>`
   }
 
   ${breakpoint("tablet")`
-    padding: 16px;
+    padding: 12px;
     ${(props: WrapperProps) => props.$insetTitleAdjust && `padding-left: 64px;`}
     `};
 `;
@@ -246,8 +271,37 @@ const MobileMenuButton = styled(Button)`
   }
 `;
 
+const SidebarToggle = styled("div")<{ $visible: boolean }>`
+  flex-shrink: 0;
+  overflow: hidden;
+  width: ${(props) => (props.$visible ? 32 : 0)}px;
+  margin-inline-end: ${(props) => (props.$visible ? 8 : 0)}px;
+  pointer-events: ${(props) => (props.$visible ? "auto" : "none")};
+  transition:
+    width 150ms ease-out,
+    margin 150ms ease-out;
+
+  @media print {
+    display: none;
+  }
+`;
+
+const SidebarToggleButton = styled(Button)<{ $visible: boolean }>`
+  color: ${s("textTertiary")};
+  opacity: ${(props) => (props.$visible ? 1 : 0)};
+  transition: opacity 150ms ease-out;
+
+  &:hover:not(:disabled) {
+    color: ${s("textSecondary")};
+  }
+
+  [dir="rtl"] & svg {
+    transform: scaleX(-1);
+  }
+`;
+
 const CloseSplitPaneButton = styled(Button)`
   pointer-events: auto;
 `;
 
-export default observer(React.forwardRef(Header));
+export default observer(Header);

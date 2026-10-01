@@ -45,10 +45,10 @@ import {
   newTemplatePath,
   searchPath,
 } from "~/utils/routeHelpers";
-import ExportDialog from "~/components/ExportDialog";
+import { ExportDialog } from "~/components/Export/ExportDialog";
 import { isMobile } from "@shared/utils/browser";
 import history from "~/utils/history";
-import lazyWithRetry from "~/utils/lazyWithRetry";
+import lazyWithRetry from "@shared/utils/lazyWithRetry";
 import { openRouteInSplit } from "~/utils/splitView";
 
 const ColorCollectionIcon = ({ collection }: { collection: Collection }) => (
@@ -179,6 +179,7 @@ export const duplicateCollection = createAction({
 export const importDocument = dialogActionFactory({
   analyticsName: "Import document",
   section: ActiveCollectionSection,
+  width: "640px",
   icon: <ImportIcon />,
   name: (t) => `${t("Import documents")}…`,
   title: (t, { getActiveModel }) => (
