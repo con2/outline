@@ -213,11 +213,48 @@ Per site:
    (whole bucket, every object irreplaceable) and apply them before the switch, as was done for
    Kompassi.
 4. Copy, with the site still on Minio (new uploads during the copy are picked up by the second
-   pass): `rclone copy minio:outlinetracon garage:outlinetracon --transfers 8`, using the Minio
-   key from the site's `outline` Secret and the new Garage key.
-5. Switch: write the Garage key into `awsAccessKeyId`/`awsSecretAccessKey` of the `outline`
-   Secret, set the endpoint and empty `AWS_S3_ACL` in the site's values, deploy, then run the
-   copy once more for the delta.
+   pass). rclone config, in `~/.config/rclone/rclone.conf` or a file passed with `--config`; the
+   Minio key is the site's current `awsAccessKeyId`/`awsSecretAccessKey`:
+
+   ```ini
+   [minio]
+   type = s3
+   provider = Minio
+   endpoint = https://minio.con2.fi
+   access_key_id = MINIO_ACCESS_KEY_ID
+   secret_access_key = MINIO_SECRET_ACCESS_KEY
+   region = eu-west-1
+   force_path_style = true
+
+   [garage]
+   type = s3
+   provider = Other
+   endpoint = https://garage.con2.fi
+   access_key_id = GARAGE_ACCESS_KEY_ID
+   secret_access_key = GARAGE_SECRET_ACCESS_KEY
+   region = garage
+   force_path_style = true
+   ```
+
+   ```sh
+   rclone lsd minio:                                   # lists the buckets
+   rclone copy minio:outlinetracon garage:outlinetracon --checksum --transfers 8 --progress
+   rclone check --one-way minio:outlinetracon garage:outlinetracon
+   ```
+
+   If the 2020 Minio rejects rclone's signatures (the same class of problem that broke Outline's
+   download URLs), add `v2_auth = true` to the `[minio]` section.
+5. Switch. With the Garage key id and secret in `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`:
+
+   ```sh
+   kubectl -n outline-tracon patch secret outline --type merge \
+     -p "{\"stringData\":{\"awsAccessKeyId\":\"$ACCESS_KEY_ID\",\"awsSecretAccessKey\":\"$SECRET_ACCESS_KEY\"}}"
+   kubectl -n outline-tracon get secret outline -o jsonpath='{.data.awsAccessKeyId}' | base64 -d; echo
+   ```
+
+   Set `aws_upload_bucket_url: https://garage.con2.fi` and `aws_s3_acl: ""` in the site's vars,
+   push, wait for the rollout (the pod reads the Secret at start), run the CORS script from
+   step 2, then run the copy once more for the delta.
 6. Verify: open an old attachment, upload a new one, check the object landed in Garage, check the
    browser console for CORS errors on the upload.
 7. Two weeks later, delete the Minio bucket. Once all five are gone, Outline is off Minio; the
