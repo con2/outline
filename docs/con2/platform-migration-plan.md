@@ -196,95 +196,37 @@ What Outline does with the bucket, so the differences from Minio are known up fr
   default). `AWS_REGION` must be `garage`: Garage validates the region in every signature and
   answers `AuthorizationHeaderMalformed` for anything else (`aws_region: garage` in the vars).
 
-Per site:
+Per site, `kubernetes/migrate-to-garage.sh <site> prepare`, then commit and push, then
+`kubernetes/migrate-to-garage.sh <site> finish`. Every step in it is idempotent, so a phase can be
+rerun after a failure. What the two phases do:
 
-1. On Garage, reusing the Minio bucket name so values files change by endpoint only:
+1. `prepare`: creates the Garage bucket under the Minio bucket's name and a key of the same
+   name, grants the key read/write/owner and `garage-backup-reader` read, copies the bucket from
+   Minio with rclone (`--checksum`, then `rclone check --one-way`), writes the Garage key into the
+   site's `outline` Secret, sets `aws_upload_bucket_url`, `aws_region: garage` and `aws_s3_acl: ""`
+   in the site's vars file, and adds the bucket to both Garage backup CronJobs in the
+   infrastructure checkout (`INFRASTRUCTURE_DIR`, default `../infrastructure`). It ends by listing
+   what to commit: the CronJobs (commit and `kubectl apply`), and the vars file (commit and push
+   `con2`, which deploys the switch).
+2. `finish`: waits for the rollout, checks the pod really runs with the Garage endpoint and
+   region, stores the bucket's CORS rule by running `con2-s3-cors.js` inside the pod through
+   `docker-entrypoint.sh` (`kubectl exec` skips the entrypoint that derives `DATABASE_URL`),
+   copies whatever reached Minio between the two phases, and verifies again.
 
-   ```sh
-   kubectl -n garage exec garage-0 -- /garage bucket create outlinetracon
-   kubectl -n garage exec garage-0 -- /garage key create outlinetracon        # prints key id and secret
-   kubectl -n garage exec garage-0 -- /garage bucket allow --read --write --owner outlinetracon --key outlinetracon
-   kubectl -n garage exec garage-0 -- /garage bucket allow --read outlinetracon --key garage-backup-reader
-   ```
+The Minio key is read from the Secret while it still holds one. `finish` runs after the switch,
+so it needs `MINIO_ACCESS_KEY_ID` and `MINIO_SECRET_ACCESS_KEY` exported; `MINIO_V2_AUTH=true`
+makes rclone fall back to signature v2 if the 2020 Minio rejects v4.
 
-2. CORS. Garage allows no cross-origin requests until a rule is stored, so until this has run,
-   downloads work (same-origin redirect) but browser uploads fail with a CORS error. The script
-   reads the same `AWS_*` and `URL` variables as the server and stores one rule allowing
-   `POST, PUT, GET, HEAD` from the site's origin. Once the pod runs with the Garage key and
-   endpoint (step 5), run it inside the pod:
+Then verify in the browser: an old attachment opens (signed Garage URL), a new one uploads
+without a CORS or 4xx error on the POST. Two weeks later, delete the Minio bucket. Once all five
+are gone, Outline is off Minio; the remaining Minio tenants are tracked in the infrastructure
+repository.
 
-   ```sh
-   kubectl -n outline-tracon exec deploy/outline -c outline -- /opt/outline/docker-entrypoint.sh node build/server/scripts/con2-s3-cors.js
-   ```
-
-   Extra origins (a dev server) go as arguments after the script path. To run it from a laptop
-   instead, after `yarn build:server`, with the Garage key exported; exported variables win over
-   `.env`:
-
-   ```sh
-   URL=https://wiki.tracon.fi AWS_S3_UPLOAD_BUCKET_URL=https://garage.con2.fi AWS_S3_UPLOAD_BUCKET_NAME=outlinetracon \
-     AWS_REGION=garage AWS_ACCESS_KEY_ID=$ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY \
-     node build/server/scripts/con2-s3-cors.js
-   ```
-
-3. Add the bucket to both Garage backup CronJobs in `infrastructure/kubernetes/garage/`
-   (whole bucket, every object irreplaceable) and apply them before the switch, as was done for
-   Kompassi.
-4. Copy, with the site still on Minio (new uploads during the copy are picked up by the second
-   pass). rclone config, in `~/.config/rclone/rclone.conf` or a file passed with `--config`; the
-   Minio key is the site's current `awsAccessKeyId`/`awsSecretAccessKey`:
-
-   ```ini
-   [minio]
-   type = s3
-   provider = Minio
-   endpoint = https://minio.con2.fi
-   access_key_id = MINIO_ACCESS_KEY_ID
-   secret_access_key = MINIO_SECRET_ACCESS_KEY
-   region = eu-west-1
-   force_path_style = true
-
-   [garage]
-   type = s3
-   provider = Other
-   endpoint = https://garage.con2.fi
-   access_key_id = GARAGE_ACCESS_KEY_ID
-   secret_access_key = GARAGE_SECRET_ACCESS_KEY
-   region = garage
-   force_path_style = true
-   ```
-
-   ```sh
-   rclone lsd minio:                                   # lists the buckets
-   rclone copy minio:outlinetracon garage:outlinetracon --checksum --transfers 8 --progress
-   rclone check --one-way minio:outlinetracon garage:outlinetracon
-   ```
-
-   If the 2020 Minio rejects rclone's signatures (the same class of problem that broke Outline's
-   download URLs), add `v2_auth = true` to the `[minio]` section.
-
-5. Switch. Assign the Garage key id and secret to shell variables on their own lines first: a
-   `VAR=value command` prefix does not work here, because the shell expands `$VAR` in the
-   argument before the command runs and the Secret ends up with empty strings. The `${VAR:?}`
-   form aborts on an unset variable instead.
-
-   ```sh
-   ACCESS_KEY_ID=GK...
-   SECRET_ACCESS_KEY=...
-   kubectl -n outline-tracon patch secret outline --type merge \
-     -p "$(jq -n --arg a "${ACCESS_KEY_ID:?}" --arg s "${SECRET_ACCESS_KEY:?}" '{stringData:{awsAccessKeyId:$a,awsSecretAccessKey:$s}}')"
-   kubectl -n outline-tracon get secret outline -o jsonpath='{.data.awsAccessKeyId}' | base64 -d; echo
-   ```
-
-   Set `aws_upload_bucket_url: https://garage.con2.fi`, `aws_region: garage` and `aws_s3_acl: ""`
-   in the site's vars,
-   push, wait for the rollout (the pod reads the Secret at start), run the CORS script from
-   step 2, then run the copy once more for the delta.
-
-6. Verify: open an old attachment, upload a new one, check the object landed in Garage, check the
-   browser console for CORS errors on the upload.
-7. Two weeks later, delete the Minio bucket. Once all five are gone, Outline is off Minio; the
-   remaining Minio tenants are tracked in the infrastructure repository.
+Done by hand before the script existed, for con2.fi on 2026-10-01: the bucket, key, first copy,
+and the vars change. The things that went wrong on the way and are now built into the script: a
+`VAR=value kubectl patch ... "$VAR"` one-liner writes empty strings (the shell expands the
+argument before the prefix assignment applies); `kubectl exec ... node` fails on `DATABASE_URL`
+without the entrypoint; Garage validates the signing region.
 
 ## Open questions, to settle before each step
 
