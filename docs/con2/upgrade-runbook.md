@@ -79,7 +79,12 @@ Checks, in order:
    select count(*) from documents where content is null;  -- candidates for the backfill script
    ```
 
-2. Sign in at http://localhost:3000 with Kompassi. The Kompassi Application must list
+2. Sign in at http://localhost:3000 with Kompassi. If the callback returns 500 with
+   `error:1C800064:Provider routines::bad decrypt` from `User.getSessionToken`, the dump's rows are
+   encrypted with the production `SECRET_KEY` and `.env` has a different one: paste the production
+   key into `.env`, or run `node build/server/scripts/reset-encrypted-data.js` to regenerate every
+   user's JWT secret under the local key. Neither applies in production, which keeps its key.
+   The Kompassi Application must list
    `http://localhost:3000/auth/kompassi.callback` as a redirect URI (step 2). Confirm you land in
    the existing account (same documents, same collections), not a fresh one.
 3. Open documents with images and attachments. In this setup `FILE_STORAGE=local`, so the
