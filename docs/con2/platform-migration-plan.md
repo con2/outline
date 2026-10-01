@@ -167,16 +167,6 @@ What Outline does with the bucket, so the differences from Minio are known up fr
   `GET`, `HEAD`) from the site's origin; Minio allowed everything by default, Garage allows
   nothing until `PutBucketCors` is called. edegal's `src/bin/s3-setup.ts` is the one-off script to
   copy, with `POST` added to `AllowedMethods`.
-
-  ```bash
-  AWS_REGION=garage \
-  AWS_S3_UPLOAD_BUCKET_URL=https://garage.con2.fi \
-  AWS_S3_FORCE_PATH_STYLE=true \
-  AWS_ACCESS_KEY_ID=GK… \
-  AWS_SECRET_ACCESS_KEY=… \
-  node build/bin/s3-setup.ts
-  ```
-
 - Outline sends `x-amz-acl` on every upload when `AWS_S3_ACL` is set. Garage implements no ACLs.
   Set `aws_s3_acl: ""` in the site's vars (`AWS_S3_ACL` empty): `server/env.ts` then omits the
   header. This is also why the fork's `Attachment.isPrivate` override (every download
@@ -223,7 +213,7 @@ Per site:
    endpoint (step 5), run it inside the pod:
 
    ```sh
-   kubectl -n outline-tracon exec deploy/outline -c outline -- node build/server/scripts/con2-s3-cors.js
+   kubectl -n outline-tracon exec deploy/outline -c outline -- /opt/outline/docker-entrypoint.sh node build/server/scripts/con2-s3-cors.js
    ```
 
    Extra origins (a dev server) go as arguments after the script path. To run it from a laptop
@@ -235,6 +225,7 @@ Per site:
      AWS_REGION=garage AWS_ACCESS_KEY_ID=$ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY \
      node build/server/scripts/con2-s3-cors.js
    ```
+
 3. Add the bucket to both Garage backup CronJobs in `infrastructure/kubernetes/garage/`
    (whole bucket, every object irreplaceable) and apply them before the switch, as was done for
    Kompassi.

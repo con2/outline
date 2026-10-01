@@ -217,11 +217,13 @@ looked at an id_token.
    your own groups sync; other users sync on their next sign-in.
 3. Attachments: open a document with an image (served via a signed Minio URL through
    `/api/attachments.redirect`), and upload a new one (browser presigned POST straight to Minio).
-4. Optional backfills, from inside the pod:
+4. Optional backfills, from inside the pod. `kubectl exec` skips the image entrypoint, which is
+   what derives `DATABASE_URL` from the `POSTGRES_*` variables, so every script run in the pod goes
+   through `docker-entrypoint.sh`:
 
    ```sh
-   kubectl -n outline exec deploy/outline -c outline -- node build/server/scripts/20231119000000-backfill-document-content.js
-   kubectl -n outline exec deploy/outline -c outline -- node build/server/scripts/20231119000000-backfill-revision-content.js
+   kubectl -n outline exec deploy/outline -c outline -- /opt/outline/docker-entrypoint.sh node build/server/scripts/20231119000000-backfill-document-content.js
+   kubectl -n outline exec deploy/outline -c outline -- /opt/outline/docker-entrypoint.sh node build/server/scripts/20231119000000-backfill-revision-content.js
    ```
 
 5. SMTP. The sites send through `sr1.pahaip.fi` on port 25. Upstream's `SMTP_SECURE` now defaults
