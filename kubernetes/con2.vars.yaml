@@ -18,6 +18,7 @@ ingress_letsencrypt_enabled: true
 ingress_letsencrypt_cluster_issuer: letsencrypt-prod
 
 aws_upload_bucket_url: https://garage.con2.fi
+aws_region: garage
 aws_upload_bucket_name: outline
 aws_s3_acl: ""
 

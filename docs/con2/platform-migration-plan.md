@@ -193,7 +193,8 @@ What Outline does with the bucket, so the differences from Minio are known up fr
 - The in-cluster endpoint `http://garage.garage.svc.cluster.local:3900` cannot be used for
   Outline: the browser must reach the same URL the server signs, so
   `AWS_S3_UPLOAD_BUCKET_URL=https://garage.con2.fi` and `AWS_S3_FORCE_PATH_STYLE=true` (the
-  default). `AWS_REGION` stays `eu-west-1` or becomes `garage`; Garage does not check it.
+  default). `AWS_REGION` must be `garage`: Garage validates the region in every signature and
+  answers `AuthorizationHeaderMalformed` for anything else (`aws_region: garage` in the vars).
 
 Per site:
 
@@ -275,7 +276,8 @@ Per site:
    kubectl -n outline-tracon get secret outline -o jsonpath='{.data.awsAccessKeyId}' | base64 -d; echo
    ```
 
-   Set `aws_upload_bucket_url: https://garage.con2.fi` and `aws_s3_acl: ""` in the site's vars,
+   Set `aws_upload_bucket_url: https://garage.con2.fi`, `aws_region: garage` and `aws_s3_acl: ""`
+   in the site's vars,
    push, wait for the rollout (the pod reads the Secret at start), run the CORS script from
    step 2, then run the copy once more for the delta.
 
