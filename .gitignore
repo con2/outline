@@ -26,3 +26,6 @@ data/*
 !.yarn/releases
 .yarn/releases
 !.yarn/sdks
+
+# CON2: local FILE_STORAGE=local root used when testing against a database dump
+/data

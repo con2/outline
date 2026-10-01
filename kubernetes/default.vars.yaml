@@ -65,15 +65,15 @@ smtp_password: ""
 
 # Configuration vars end here. Configuration snippets follow. May be overridden for advanced configuration.
 
-# Security context for outline and Celery pods
+# Matches the nodejs user of the upstream runtime image (Dockerfile).
 outline_pod_security_context:
-  runAsUser: 1000
-  runAsGroup: 1000
+  runAsUser: 1001
+  runAsGroup: 1001
 outline_container_security_context:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
 
-# Common environment vars for both outline and celery pods.
+# Environment of the outline container and the migration init container.
 outline_environment:
   - name: NODE_ENV
     value: production
@@ -109,7 +109,7 @@ outline_environment:
     value: !Var aws_upload_bucket_url
   - name: AWS_S3_UPLOAD_BUCKET_NAME
     value: !Var aws_upload_bucket_name
-  - name: AWS_S3_UPLOAD_MAX_SIZE
+  - name: FILE_STORAGE_UPLOAD_MAX_SIZE
     value: !Format "{aws_upload_max_size}"
   - name: AWS_S3_ACL
     value: !Var aws_s3_acl

@@ -27,17 +27,17 @@ spec:
             then:
               name: setup
               image: !Var outline_image
-              args:
-                !If
-                  test: !Var postgres_ssl
-                  then: ["yarn", "sequelize:migrate"]
-                  else: ["yarn", "sequelize:migrate", "--env", "production-ssl-disabled"]
+              # The same check the server forks on boot; running it first keeps the migration
+              # log out of the web pod and fails the rollout before traffic shifts. The runtime
+              # image has no yarn, so the compiled script is invoked directly. SSL mode comes
+              # from PGSSLMODE in the environment.
+              args: ["node", "build/server/scripts/checkMigrations.js"]
               env: !Var outline_environment
               securityContext: !Var outline_container_security_context
               volumeMounts:
                 - mountPath: /tmp
                   name: outline-temp
-                - mountPath: /home/outline
+                - mountPath: /home/nodejs
                   name: outline-home
         - !If
             test: !Var outline_data_migration_should_run
@@ -52,7 +52,7 @@ spec:
               volumeMounts:
                 - mountPath: /tmp
                   name: outline-temp
-                - mountPath: /home/outline
+                - mountPath: /home/nodejs
                   name: outline-home
       containers:
         - name: outline
@@ -82,7 +82,7 @@ spec:
           volumeMounts:
             - mountPath: /tmp
               name: outline-temp
-            - mountPath: /home/outline
+            - mountPath: /home/nodejs
               name: outline-home
       volumes:
         - name: outline-temp
