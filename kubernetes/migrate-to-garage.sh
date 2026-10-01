@@ -37,7 +37,8 @@ garage_url="https://garage.con2.fi"
 minio_url="https://minio.con2.fi"
 
 say() { printf '\n==> %s\n' "$*"; }
-garage() { kubectl -n garage exec garage-0 -c garage -- /garage "$@"; }
+# The CLI logs its RPC handshake on stderr at INFO level on every call; drop just those lines.
+garage() { kubectl -n garage exec garage-0 -c garage -- /garage "$@" 2> >(grep -v ' INFO ' >&2); }
 secret_value() { kubectl -n "$namespace" get secret outline -o jsonpath="{.data.$1}" | base64 -d; }
 
 garage_key_field() {
@@ -60,13 +61,13 @@ minio_credentials() {
   MINIO_SECRET_ACCESS_KEY="$(secret_value awsSecretAccessKey)"
 }
 
+rclone_dir=""
 rclone_config=""
 write_rclone_config() {
   minio_credentials
-  local dir
-  dir="$(mktemp -d)"
-  rclone_config="$dir/rclone.conf"
-  trap 'rm -rf "$dir"' EXIT
+  rclone_dir="$(mktemp -d)"
+  rclone_config="$rclone_dir/rclone.conf"
+  trap 'rm -rf "$rclone_dir"' EXIT
   (umask 077; cat > "$rclone_config" <<CONF
 [minio]
 type = s3
