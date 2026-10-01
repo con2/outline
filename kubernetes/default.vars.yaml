@@ -55,6 +55,8 @@ aws_region: eu-west-1
 aws_upload_bucket_url: https://nonexistent.example.com
 aws_upload_bucket_name: nonexistent
 aws_upload_max_size: 26214400
+# Canned ACL sent with every upload. Set to "" for stores without ACLs (Garage): the server
+# omits the header when the variable is empty, and the fork signs every download URL anyway.
 aws_s3_acl: private
 
 smtp_hostname: ""

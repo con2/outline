@@ -168,8 +168,8 @@ What Outline does with the bucket, so the differences from Minio are known up fr
   nothing until `PutBucketCors` is called. edegal's `src/bin/s3-setup.ts` is the one-off script to
   copy, with `POST` added to `AllowedMethods`.
 - Outline sends `x-amz-acl` on every upload when `AWS_S3_ACL` is set. Garage implements no ACLs.
-  Set `AWS_S3_ACL=` (empty) for Garage: `server/env.ts` treats the empty string as unset and
-  omits the header. This is also why the fork's `Attachment.isPrivate` override (every download
+  Set `aws_s3_acl: ""` in the site's vars (`AWS_S3_ACL` empty): `server/env.ts` then omits the
+  header. This is also why the fork's `Attachment.isPrivate` override (every download
   is a signed URL) stays: it is what makes "no ACL" safe.
 - Downloads are signed URLs through `/api/attachments.redirect?id=…`, built from
   `AWS_S3_UPLOAD_BUCKET_URL` plus the stored key at request time. Keys are relative
@@ -205,9 +205,10 @@ Per site:
    kubectl -n garage exec garage-0 -- /garage bucket allow --read outlinetracon --key garage-backup-reader
    ```
 
-2. CORS: run the s3-setup script (copied into this repository as `server/scripts/s3-setup.ts`
-   or run from edegal with the Outline bucket's settings) against `https://garage.con2.fi` with
-   origin `https://wiki.tracon.fi` and methods `POST, PUT, GET, HEAD`.
+2. CORS: once the pod runs with the Garage key and endpoint (step 5), run
+   `node build/server/scripts/con2-s3-cors.js` inside it. It reads the pod's own `AWS_*` and
+   `URL`, and stores one rule allowing `POST, PUT, GET, HEAD` from the site's origin. Until it has
+   run, downloads work (same-origin redirect) but browser uploads fail with a CORS error.
 3. Add the bucket to both Garage backup CronJobs in `infrastructure/kubernetes/garage/`
    (whole bucket, every object irreplaceable) and apply them before the switch, as was done for
    Kompassi.
