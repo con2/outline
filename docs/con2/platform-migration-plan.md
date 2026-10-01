@@ -11,7 +11,8 @@ reuses those recipes; the file paths below point at them.
 | Database              | siilo.tracon.fi (PostgreSQL 17, bare metal)                     | CloudNativePG cluster `postgres` on qb (PostgreSQL 18)   | `infrastructure/kubernetes/postgres/README.md`, larpit-fi |
 | Attachments           | minio.con2.fi                                                   | garage.con2.fi                                           | kompassi media move (2026-09-29), edegal                  |
 
-Recommended order, one change live and stable before the next starts:
+Recommended order, one change live and stable before the next starts (steps 1 and 4 are done,
+see their sections):
 
 1. Application upgrade (runbook). Everything below assumes the new code, mainly because the
    S3 client, upload method and env var names are the new ones.
@@ -155,6 +156,12 @@ five Outline databases are a third of what is left on siilo
 (`infrastructure/kubernetes/postgres/README.md` lists the rest).
 
 ## 3. Minio → Garage
+
+**Done 2026-10-01 for all five sites**, ahead of the planned order, because the upgraded Outline's
+download URLs failed against the 2020 Minio with `SignatureDoesNotMatch`. Remaining: delete the
+five Minio buckets (`outline`, `outlinetracon`, `outlinekuplii`, `outlineropecon`,
+`outlinekotae`) around 2026-10-15 once nobody has missed anything.
+
 
 Per site: a bucket and a key on Garage, a copy, a Secret and values change, a CORS rule, then the
 Minio bucket is deleted after a grace period. Recipe used for Kompassi production on 2026-09-29;

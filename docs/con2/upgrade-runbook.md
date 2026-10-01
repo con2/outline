@@ -1,5 +1,10 @@
 # Runbook: upgrading con2's Outline from v0.67.0 to upstream main
 
+**Done 2026-10-01 for all five sites.** Kept as the record of how, and as the template for the
+next big upstream jump. Attachments moved to Garage the same day (`platform-migration-plan.md`,
+section 3), because the 2020 Minio rejected the URLs the current AWS SDK signs.
+
+
 Branch `con2` runs in production: upstream v0.67.0 (January 2023) plus 70 fork commits. Branch
 `con2-next` is the fork recreated on upstream `main` (v1.10.1 plus 11 commits, rebased
 2026-10-01): one commit porting the con2 pieces (`plugins/kompassi`, `plugins/local`,
