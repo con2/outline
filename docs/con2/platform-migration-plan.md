@@ -4,12 +4,12 @@ Four changes to how the five Outline sites are deployed, all independent of the 
 upgrade in `upgrade-runbook.md`, and all already done once for other con2 apps on qb. This plan
 reuses those recipes; the file paths below point at them.
 
-| Change | From | To | Reference done elsewhere |
-|---|---|---|---|
-| Routing | `Ingress` (Traefik class) + per-Ingress cert-manager annotation | `Gateway` + `HTTPRoute`, cert-manager on the Gateway | rallly-con2 `chart/`, edegal, larpit-fi |
-| Templating and deploy | Emrichen `.in.yaml` via emskaffolden + skaffold | Helm chart in `chart/`, `helm upgrade --install` from CI | rallly-con2 `chart/` + `cicd.yaml` |
-| Database | siilo.tracon.fi (PostgreSQL 17, bare metal) | CloudNativePG cluster `postgres` on qb (PostgreSQL 18) | `infrastructure/kubernetes/postgres/README.md`, larpit-fi |
-| Attachments | minio.con2.fi | garage.con2.fi | kompassi media move (2026-09-29), edegal |
+| Change                | From                                                            | To                                                       | Reference done elsewhere                                  |
+| --------------------- | --------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
+| Routing               | `Ingress` (Traefik class) + per-Ingress cert-manager annotation | `Gateway` + `HTTPRoute`, cert-manager on the Gateway     | rallly-con2 `chart/`, edegal, larpit-fi                   |
+| Templating and deploy | Emrichen `.in.yaml` via emskaffolden + skaffold                 | Helm chart in `chart/`, `helm upgrade --install` from CI | rallly-con2 `chart/` + `cicd.yaml`                        |
+| Database              | siilo.tracon.fi (PostgreSQL 17, bare metal)                     | CloudNativePG cluster `postgres` on qb (PostgreSQL 18)   | `infrastructure/kubernetes/postgres/README.md`, larpit-fi |
+| Attachments           | minio.con2.fi                                                   | garage.con2.fi                                           | kompassi media move (2026-09-29), edegal                  |
 
 Recommended order, one change live and stable before the next starts:
 
@@ -101,10 +101,10 @@ verbatim with the names changed; the memory of what bit on rallly and larpit is 
    `app.kubernetes.io/managed-by=Helm`, `meta.helm.sh/release-name=outline`,
    `meta.helm.sh/release-namespace=<ns>`.
 2. `helm template outline chart -f chart/values-<site>.yaml | kubectl -n <ns> diff
-   --server-side --force-conflicts -f -` and read it. Expect the new Gateway and HTTPRoutes,
+--server-side --force-conflicts -f -` and read it. Expect the new Gateway and HTTPRoutes,
    labels, resources, probes and security context; nothing in the env list should change.
 3. `helm upgrade --install outline chart -n <ns> -f chart/values-<site>.yaml --wait
-   --force-conflicts`. Only this first install needs `--force-conflicts` (fields are owned by
+--force-conflicts`. Only this first install needs `--force-conflicts` (fields are owned by
    `kubectl-client-side-apply`).
 4. Wait for `kubectl -n <ns> get certificate tls-outline` to be Ready. Until then the Ingress
    keeps serving with its own certificate. Then `kubectl -n <ns> delete ingress outline` and
@@ -167,6 +167,16 @@ What Outline does with the bucket, so the differences from Minio are known up fr
   `GET`, `HEAD`) from the site's origin; Minio allowed everything by default, Garage allows
   nothing until `PutBucketCors` is called. edegal's `src/bin/s3-setup.ts` is the one-off script to
   copy, with `POST` added to `AllowedMethods`.
+
+  ```bash
+  AWS_REGION=garage \
+  AWS_S3_UPLOAD_BUCKET_URL=https://garage.con2.fi \
+  AWS_S3_FORCE_PATH_STYLE=true \
+  AWS_ACCESS_KEY_ID=GK… \
+  AWS_SECRET_ACCESS_KEY=… \
+  node build/bin/s3-setup.ts
+  ```
+
 - Outline sends `x-amz-acl` on every upload when `AWS_S3_ACL` is set. Garage implements no ACLs.
   Set `aws_s3_acl: ""` in the site's vars (`AWS_S3_ACL` empty): `server/env.ts` then omits the
   header. This is also why the fork's `Attachment.isPrivate` override (every download
@@ -189,6 +199,7 @@ What Outline does with the bucket, so the differences from Minio are known up fr
   against `attachments.key`, or keep a hostname redirect `minio.con2.fi → garage.con2.fi` (the
   con2/redirects repo does hostname redirects) until Minio is decommissioned. Signed Minio URLs
   that were pasted into documents expire anyway and were never stable.
+
 - The in-cluster endpoint `http://garage.garage.svc.cluster.local:3900` cannot be used for
   Outline: the browser must reach the same URL the server signs, so
   `AWS_S3_UPLOAD_BUCKET_URL=https://garage.con2.fi` and `AWS_S3_FORCE_PATH_STYLE=true` (the
@@ -205,10 +216,25 @@ Per site:
    kubectl -n garage exec garage-0 -- /garage bucket allow --read outlinetracon --key garage-backup-reader
    ```
 
-2. CORS: once the pod runs with the Garage key and endpoint (step 5), run
-   `node build/server/scripts/con2-s3-cors.js` inside it. It reads the pod's own `AWS_*` and
-   `URL`, and stores one rule allowing `POST, PUT, GET, HEAD` from the site's origin. Until it has
-   run, downloads work (same-origin redirect) but browser uploads fail with a CORS error.
+2. CORS. Garage allows no cross-origin requests until a rule is stored, so until this has run,
+   downloads work (same-origin redirect) but browser uploads fail with a CORS error. The script
+   reads the same `AWS_*` and `URL` variables as the server and stores one rule allowing
+   `POST, PUT, GET, HEAD` from the site's origin. Once the pod runs with the Garage key and
+   endpoint (step 5), run it inside the pod:
+
+   ```sh
+   kubectl -n outline-tracon exec deploy/outline -c outline -- node build/server/scripts/con2-s3-cors.js
+   ```
+
+   Extra origins (a dev server) go as arguments after the script path. To run it from a laptop
+   instead, after `yarn build:server`, with the Garage key exported; exported variables win over
+   `.env`:
+
+   ```sh
+   URL=https://wiki.tracon.fi AWS_S3_UPLOAD_BUCKET_URL=https://garage.con2.fi AWS_S3_UPLOAD_BUCKET_NAME=outlinetracon \
+     AWS_REGION=garage AWS_ACCESS_KEY_ID=$ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY \
+     node build/server/scripts/con2-s3-cors.js
+   ```
 3. Add the bucket to both Garage backup CronJobs in `infrastructure/kubernetes/garage/`
    (whole bucket, every object irreplaceable) and apply them before the switch, as was done for
    Kompassi.
@@ -244,6 +270,7 @@ Per site:
 
    If the 2020 Minio rejects rclone's signatures (the same class of problem that broke Outline's
    download URLs), add `v2_auth = true` to the `[minio]` section.
+
 5. Switch. With the Garage key id and secret in `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`:
 
    ```sh
@@ -255,6 +282,7 @@ Per site:
    Set `aws_upload_bucket_url: https://garage.con2.fi` and `aws_s3_acl: ""` in the site's vars,
    push, wait for the rollout (the pod reads the Secret at start), run the CORS script from
    step 2, then run the copy once more for the delta.
+
 6. Verify: open an old attachment, upload a new one, check the object landed in Garage, check the
    browser console for CORS errors on the upload.
 7. Two weeks later, delete the Minio bucket. Once all five are gone, Outline is off Minio; the
