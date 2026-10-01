@@ -71,7 +71,7 @@ jobs:
           python3 -m pip install -U pip setuptools wheel
           python3 -m pip install emskaffolden
           emskaffolden -E con2 -- deploy -n outline -a build.json
-          emskaffolden -E tracon -- deploy -n outline-tracon -a build.json
-          emskaffolden -E kuplii -- deploy -n outline-kuplii -a build.json
-          emskaffolden -E ropecon -- deploy -n outline-ropecon -a build.json
-          emskaffolden -E kotae -- deploy -n outline-kotae -a build.json
+          # emskaffolden -E tracon -- deploy -n outline-tracon -a build.json
+          # emskaffolden -E kuplii -- deploy -n outline-kuplii -a build.json
+          # emskaffolden -E ropecon -- deploy -n outline-ropecon -a build.json
+          # emskaffolden -E kotae -- deploy -n outline-kotae -a build.json
