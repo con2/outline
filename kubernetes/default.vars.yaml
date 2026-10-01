@@ -10,6 +10,9 @@ outline_utils_secret_key: ''
 
 outline_insecure_local_auth_enabled: false
 
+# Web processes per pod. Upstream defaults to one per CPU of the node when unset.
+outline_web_concurrency: 2
+
 # Set this to the public hostname of your service.
 ingress_public_hostname: outline.localhost
 ingress_class_name: traefik
@@ -79,6 +82,8 @@ outline_environment:
     value: production
   - name: PORT
     value: "3000"
+  - name: WEB_CONCURRENCY
+    value: !Format "{outline_web_concurrency}"
   - name: SECRET_KEY
     valueFrom:
       secretKeyRef:
