@@ -17,7 +17,7 @@ outline_setup_should_run: true
 ingress_letsencrypt_enabled: true
 ingress_letsencrypt_cluster_issuer: letsencrypt-prod
 
-aws_upload_bucket_url: https://minio.con2.fi
+aws_upload_bucket_url: https://garage.con2.fi
 aws_upload_bucket_name: outlinetracon
 
 smtp_hostname: sr1.pahaip.fi
@@ -41,3 +41,5 @@ kompassi_access_groups:
   - traconry-hallitus-nykyinen
 kompassi_admin_groups:
   - admins
+aws_region: garage
+aws_s3_acl: ""
