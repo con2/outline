@@ -25,6 +25,7 @@ smtp_from_email: root@tracon.fi
 
 kompassi_team_name: Tampere Kuplii
 kompassi_access_groups:
+  - admins
   - turska-kuplii2024-labour-kuplitea
   - turska-kuplii2025-labour-kuplitea
   - turska-kuplii2026-labour-kuplitea
