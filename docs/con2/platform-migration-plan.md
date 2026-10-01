@@ -11,8 +11,8 @@ reuses those recipes; the file paths below point at them.
 | Database              | siilo.tracon.fi (PostgreSQL 17, bare metal)                     | CloudNativePG cluster `postgres` on qb (PostgreSQL 18)   | `infrastructure/kubernetes/postgres/README.md`, larpit-fi |
 | Attachments           | minio.con2.fi                                                   | garage.con2.fi                                           | kompassi media move (2026-09-29), edegal                  |
 
-Recommended order, one change live and stable before the next starts (steps 1, 3 and 4 are done,
-see their sections; only the Helm + Gateway API move remains):
+Recommended order, one change live and stable before the next starts (steps 3 and 4 are done, step 1's chart is
+written and awaits its cutover; see the sections):
 
 1. Application upgrade (runbook). Everything below assumes the new code, mainly because the
    S3 client, upload method and env var names are the new ones.
@@ -27,6 +27,13 @@ see their sections; only the Helm + Gateway API move remains):
 con2.fi is the canary for every step, as for the upgrade.
 
 ## 1. Emrichen/emskaffolden → Helm, with Gateway API
+
+**Chart written 2026-10-01** (`chart/`, with `docker-bake.hcl` and the Helm workflow in
+`.github/workflows/con2.yaml`; `kubernetes/` and `skaffold.in.yaml` removed). The per-namespace
+cutover has not run yet: it is in `chart/README.md`, "One-time cutover", and must be done for all
+five namespaces before the first push of this commit, since the new workflow deploys with Helm.
+The section below is the design as planned; the chart follows it.
+
 
 ### Chart layout
 

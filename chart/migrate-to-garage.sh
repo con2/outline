@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Moves one Outline site's attachments from minio.con2.fi to garage.con2.fi.
 #
-#   kubernetes/migrate-to-garage.sh <site> prepare   # before the deploy
-#   kubernetes/migrate-to-garage.sh <site> finish    # after the deploy
+#   chart/migrate-to-garage.sh <site> prepare   # before the deploy
+#   chart/migrate-to-garage.sh <site> finish    # after the deploy
 #
-# <site> is one of con2 tracon kuplii ropecon kotae (the kubernetes/<site>.vars.yaml files).
+# <site> is one of con2 tracon kuplii ropecon kotae (the chart/values-<site>.yaml files).
 # Every step is idempotent, so a phase can be rerun after a failure.
 #
 # prepare: Garage bucket, key and grants; first rclone copy from Minio; Garage key into the
-#          site's `outline` Secret; Garage endpoint, region and empty ACL in the vars file; the
-#          bucket added to the Garage backup CronJobs in the infrastructure repository. Ends by
-#          printing what to commit and push. The push deploys the switch.
+#          site's `outline` Secret; the bucket added to the Garage backup CronJobs in the
+#          infrastructure repository. The chart's defaults already point at Garage, so the
+#          switch itself is the next deploy (a pod restart is enough).
 # finish:  waits for that rollout, stores the bucket's CORS rule from inside the pod, copies
 #          whatever was uploaded to Minio in between, and verifies the copy.
 #
@@ -25,13 +25,13 @@ site="${1:?usage: $0 <site> prepare|finish}"
 phase="${2:?usage: $0 <site> prepare|finish}"
 
 repo_dir="$(cd "$(dirname "$0")/.." && pwd)"
-vars_file="$repo_dir/kubernetes/$site.vars.yaml"
-[ -f "$vars_file" ] || { echo "no such site: $vars_file" >&2; exit 1; }
+values_file="$repo_dir/chart/values-$site.yaml"
+[ -f "$values_file" ] || { echo "no such site: $values_file" >&2; exit 1; }
 
 namespace="outline"
 [ "$site" = con2 ] || namespace="outline-$site"
-bucket="$(awk '/^aws_upload_bucket_name:/ {print $2}' "$vars_file")"
-hostname="$(awk '/^ingress_public_hostname:/ {print $2}' "$vars_file")"
+bucket="$(awk '/^ *bucket:/ {print $2}' "$values_file")"
+hostname="$(awk '/^hostname:/ {print $2}' "$values_file")"
 infrastructure_dir="${INFRASTRUCTURE_DIR:-$repo_dir/../infrastructure}"
 garage_url="https://garage.con2.fi"
 minio_url="https://minio.con2.fi"
@@ -99,15 +99,6 @@ copy_from_minio() {
   rclone --config "$rclone_config" check --one-way "minio:$bucket" "garage:$bucket"
 }
 
-# set_var KEY VALUE replaces the top-level KEY in the vars file or appends it.
-set_var() {
-  if grep -q "^$1:" "$vars_file"; then
-    perl -pi -e "s|^\Q$1\E:.*|$1: $2|" "$vars_file"
-  else
-    printf '%s: %s\n' "$1" "$2" >> "$vars_file"
-  fi
-}
-
 # add_to_loop FILE PATTERN adds the bucket to a `for x in a b; do` line matched by PATTERN.
 add_to_loop() {
   if grep -E "$2" "$1" | grep -qw "$bucket"; then
@@ -135,11 +126,6 @@ prepare() {
     -p "$(jq -n --arg a "$garage_key_id" --arg s "$garage_key_secret" \
       '{stringData:{awsAccessKeyId:$a,awsSecretAccessKey:$s}}')" > /dev/null
 
-  say "Pointing $vars_file at Garage"
-  set_var aws_upload_bucket_url "$garage_url"
-  set_var aws_region garage
-  set_var aws_s3_acl '""'
-
   local garage_manifests="$infrastructure_dir/kubernetes/garage"
   if [ -d "$garage_manifests" ]; then
     say "Adding $bucket to the Garage backup CronJobs in $garage_manifests"
@@ -152,8 +138,8 @@ prepare() {
   say "Prepared. Now:"
   cat <<MSG
   1. In $infrastructure_dir: review, commit, and apply kubernetes/garage/backup.cronjob-*.yaml.
-  2. In $repo_dir: review and commit kubernetes/$site.vars.yaml, push con2. The deploy switches
-     $hostname to Garage.
+  2. kubectl -n $namespace rollout restart deploy/outline (the chart already points at Garage;
+     the pod reads the Secret at start). This switches $hostname.
   3. Once the rollout is done, run: MINIO_ACCESS_KEY_ID=$MINIO_ACCESS_KEY_ID MINIO_SECRET_ACCESS_KEY=... $0 $site finish
 MSG
 }

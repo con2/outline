@@ -4,6 +4,11 @@
 
 This is the Con2 distribution of Outline. We extend Outline to provide OIDC authentication against Kompassi (with custom group-based access control and group sync), and provide a production ready Docker/Kubernetes deployment.
 
+- `plugins/kompassi`: the Kompassi sign-in and group-sync plugin; `plugins/local`: insecure dev-only sign-in.
+- `Dockerfile.con2` and `docker-bake.hcl`: the image, upstream's own Dockerfiles plus an entrypoint.
+- `chart/`: the Helm chart and per-site values, with the deployment runbook in `chart/README.md`.
+- `docs/con2/`: the v0.67 to v1.10 upgrade runbook and the platform migration plan.
+
 Original `README.md` follows.
 
 

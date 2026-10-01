@@ -1,0 +1,6 @@
+apiVersion: v2
+name: outline
+description: con2's Outline wiki fork, one release per site, signing in with Kompassi OIDC
+type: application
+version: 0.1.0
+appVersion: "1.10.1"

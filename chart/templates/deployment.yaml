@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outline
+  labels:
+    {{- include "outline.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "outline.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "outline.selectorLabels" . | nindent 8 }}
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      securityContext:
+        # The nodejs user of the upstream runtime image.
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Leaves the server its default 30 s to finish requests after the preStop sleep.
+      terminationGracePeriodSeconds: {{ add .Values.preStopSleepSeconds 35 }}
+      initContainers:
+        # The same check the server forks on boot. Running it first keeps the migration log out
+        # of the web pod and fails the rollout before traffic shifts.
+        - name: setup
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["node", "build/server/scripts/checkMigrations.js"]
+          env:
+            {{- include "outline.env" . | nindent 12 }}
+          securityContext:
+            {{- include "outline.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            {{- include "outline.volumeMounts" . | nindent 12 }}
+      containers:
+        - name: outline
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 3000
+          env:
+            {{- include "outline.env" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- include "outline.containerSecurityContext" . | nindent 12 }}
+          # Endpoint removal and SIGTERM start at the same instant, and Traefik needs a few
+          # seconds to stop routing to the pod; without the sleep every rollout returns 502s for
+          # that window.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds }}
+          startupProbe:
+            {{- include "outline.probe" . | nindent 12 }}
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            {{- include "outline.probe" . | nindent 12 }}
+            periodSeconds: 10
+          livenessProbe:
+            {{- include "outline.probe" . | nindent 12 }}
+            periodSeconds: 30
+          volumeMounts:
+            {{- include "outline.volumeMounts" . | nindent 12 }}
+      volumes:
+        - name: outline-temp
+          emptyDir: {}
+        - name: outline-home
+          emptyDir: {}
