@@ -69,10 +69,19 @@ and the hostname was routed by an Ingress named `outline`. Do this by hand, one 
 time, before the first push with this chart's workflow (that push will otherwise fail on the
 Helm ownership check). con2.fi first.
 
-1. Mark the existing objects as belonging to the release:
+1. Pick the image to install and the namespace. `sha` is the commit of a built image: there is
+   none before the first workflow run, so either push once with the deploy job disabled, or build
+   and push locally after `docker login ghcr.io`:
 
    ```sh
-   ns=outline
+   sha=$(git rev-parse HEAD)
+   TAG=$sha docker buildx bake --set '*.platform=linux/amd64' --push
+   site=con2; ns=outline          # then tracon/outline-tracon, kuplii/outline-kuplii, ...
+   ```
+
+   Then mark the existing objects as belonging to the release:
+
+   ```sh
    for object in deployment/outline service/outline; do
      kubectl -n $ns label "$object" app.kubernetes.io/managed-by=Helm
      kubectl -n $ns annotate "$object" meta.helm.sh/release-name=outline meta.helm.sh/release-namespace=$ns
@@ -81,23 +90,19 @@ Helm ownership check). con2.fi first.
 
 2. Read the diff against the live objects. Expect the new Gateway and HTTPRoutes, the strategy,
    resources, probes and security context, `replicas`, the image name changing from
-   `ghcr.io/con2/outline-con2:<skaffold tag>` to `ghcr.io/con2/outline:<sha>`, and
+   `ghcr.io/con2/outline-con2:<skaffold tag>` to `ghcr.io/con2/outline:$sha`, and
    `SMTP_SECURE`. No other env entry should change:
 
    ```sh
-   helm template outline chart -f chart/values-con2.yaml --set image.tag=<sha of a built image> \
+   helm template outline chart -f chart/values-$site.yaml --set image.tag=$sha \
      | kubectl -n $ns diff --server-side --force-conflicts -f -
    ```
-
-   There is no built image before the first workflow run, so either push once with the deploy
-   job disabled to get a sha, or build and push locally with
-   `TAG=<sha> docker buildx bake --set '*.platform=linux/amd64' --push` after `docker login ghcr.io`.
 
 3. Install:
 
    ```sh
-   helm upgrade --install outline chart --namespace $ns -f chart/values-con2.yaml \
-     --set image.tag=<sha> --wait --timeout 600s --force-conflicts
+   helm upgrade --install outline chart --namespace $ns -f chart/values-$site.yaml \
+     --set image.tag=$sha --wait --timeout 600s --force-conflicts
    ```
 
    Helm installs with server-side apply, and every field the old manifests set is owned by
