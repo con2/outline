@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.2
+# syntax=docker/dockerfile:1
 
 # Thin wrapper around Outline's own upstream final image (built unmodified
 # from `Dockerfile.base` + `Dockerfile`, see skaffold.in.yaml). Adds only what

@@ -33,7 +33,10 @@ jobs:
   deploy:
     runs-on: qb-arc-runners
     needs: build
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/con2' }}
+    # Disabled until every namespace has been through the cutover in chart/README.md; builds
+    # still run so a sha exists to install by hand. Restore the condition to
+    # github.event_name == 'push' && github.ref == 'refs/heads/con2' afterwards.
+    if: false
     strategy:
       # One site failing must not stop the others, and con2.fi goes first on its own.
       fail-fast: false
