@@ -47,7 +47,11 @@ job. Everything in this runbook that is not "push to `con2`" is a manual step.
   one Outline has on file gets a new, empty account; the old one has to be merged or deleted by
   an admin.
 - Group sync: Outline's core group-sync framework replaces the legacy plugin's manual
-  `GroupUser` mirroring. It is off until an admin enables it per site (step 5).
+  `GroupUser` mirroring. It is off until an admin enables it per site (step 5). Core matches
+  groups by `external_groups` rows, not by name, so a con2 migration
+  (`20261001120000-con2-link-legacy-kompassi-groups`) links every existing group of a team with a
+  `kompassi` provider under its own name before the first sync; without it each legacy group
+  would get a synced duplicate and the collection permissions would stay on the old copy.
 - The `teams` row predates 2024 and an `authentication_providers` row exists, so the startup
   check for the 2021 authentication data migration passes.
 
@@ -91,7 +95,12 @@ Checks, in order:
    `/api/attachments.redirect` links 404; what you are checking is that the editor renders the
    2023-era document content at all.
 4. Settings → Security: enable group sync for the Kompassi provider, sign out and in again, and
-   compare Settings → Groups against your Kompassi groups.
+   compare Settings → Groups against your Kompassi groups. Expect exactly the groups named in
+   `KOMPASSI_ACCESS_GROUPS` and `KOMPASSI_ADMIN_GROUPS` that you belong to, each shown as synced,
+   and no duplicates: migration `20261001120000-con2-link-legacy-kompassi-groups` links the
+   legacy name-matched groups to the provider, and the plugin reports only those two lists. Two
+   `admins` groups (one plain, one synced) means the database was synced before that migration
+   existed; reset it (`docker compose down -v`) and repeat.
 5. Run the optional backfills and confirm they finish:
 
    ```sh

@@ -13,6 +13,12 @@ import env from "./env";
  * provider embeds in its userinfo response (a flat list of Kompassi group
  * names, unconditional on granted scope). See
  * `kompassi/api_v2/custom_oauth2_validator.py` in the Kompassi codebase.
+ *
+ * Only the groups named in KOMPASSI_ACCESS_GROUPS and KOMPASSI_ADMIN_GROUPS
+ * are reported. A Kompassi account belongs to dozens of groups from unrelated
+ * events, and the legacy provider mirrored only these two lists, so the
+ * existing groups (and the collection permissions on them) are exactly this
+ * set.
  */
 export class KompassiGroupSyncProvider implements GroupSyncProvider {
   public useGroupClaim = true;
@@ -36,6 +42,13 @@ export class KompassiGroupSyncProvider implements GroupSyncProvider {
       | string[]
       | undefined;
 
-    return (groupNames ?? []).map((name) => ({ id: name, name }));
+    const mirrored = new Set([
+      ...env.KOMPASSI_ACCESS_GROUPS,
+      ...env.KOMPASSI_ADMIN_GROUPS,
+    ]);
+
+    return (groupNames ?? [])
+      .filter((name) => mirrored.has(name))
+      .map((name) => ({ id: name, name }));
   }
 }
