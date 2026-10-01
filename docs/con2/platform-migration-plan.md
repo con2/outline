@@ -262,11 +262,16 @@ Per site:
    If the 2020 Minio rejects rclone's signatures (the same class of problem that broke Outline's
    download URLs), add `v2_auth = true` to the `[minio]` section.
 
-5. Switch. With the Garage key id and secret in `ACCESS_KEY_ID` and `SECRET_ACCESS_KEY`:
+5. Switch. Assign the Garage key id and secret to shell variables on their own lines first: a
+   `VAR=value command` prefix does not work here, because the shell expands `$VAR` in the
+   argument before the command runs and the Secret ends up with empty strings. The `${VAR:?}`
+   form aborts on an unset variable instead.
 
    ```sh
+   ACCESS_KEY_ID=GK...
+   SECRET_ACCESS_KEY=...
    kubectl -n outline-tracon patch secret outline --type merge \
-     -p "{\"stringData\":{\"awsAccessKeyId\":\"$ACCESS_KEY_ID\",\"awsSecretAccessKey\":\"$SECRET_ACCESS_KEY\"}}"
+     -p "$(jq -n --arg a "${ACCESS_KEY_ID:?}" --arg s "${SECRET_ACCESS_KEY:?}" '{stringData:{awsAccessKeyId:$a,awsSecretAccessKey:$s}}')"
    kubectl -n outline-tracon get secret outline -o jsonpath='{.data.awsAccessKeyId}' | base64 -d; echo
    ```
 
