@@ -11,8 +11,8 @@ reuses those recipes; the file paths below point at them.
 | Database              | siilo.tracon.fi (PostgreSQL 17, bare metal)                     | CloudNativePG cluster `postgres` on qb (PostgreSQL 18)   | `infrastructure/kubernetes/postgres/README.md`, larpit-fi |
 | Attachments           | minio.con2.fi                                                   | garage.con2.fi                                           | kompassi media move (2026-09-29), edegal                  |
 
-Recommended order, one change live and stable before the next starts (steps 1 and 4 are done,
-see their sections):
+Recommended order, one change live and stable before the next starts (steps 1, 3 and 4 are done,
+see their sections; only the Helm + Gateway API move remains):
 
 1. Application upgrade (runbook). Everything below assumes the new code, mainly because the
    S3 client, upload method and env var names are the new ones.
@@ -123,6 +123,11 @@ Env var housekeeping to do in the chart while every variable is being retyped an
 which is right behind Traefik; add `SMTP_SECURE` per the runbook if port 25 needs it.
 
 ## 2. siilo → CloudNativePG
+
+**Done 2026-10-01 for all five sites** with the three scripts below; no application or manifest
+change was needed, since the `postgres` Secret carries the hostname. Remaining: after a few stable
+days, take a manual CNPG backup and drop the five databases and roles on siilo (README step 5).
+
 
 Recipe: `infrastructure/kubernetes/postgres/README.md`, "Migrating an app off siilo". Outline
 needs nothing beyond it:
