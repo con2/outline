@@ -1,0 +1,11 @@
+hostname: wiki.tamperekuplii.fi
+redis:
+  database: 14
+s3:
+  bucket: outlinekuplii
+kompassi:
+  teamName: Tampere Kuplii
+  accessGroups:
+    - turska-kuplii2024-labour-kuplitea
+    - turska-kuplii2025-labour-kuplitea
+    - turska-kuplii2026-labour-kuplitea

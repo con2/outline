@@ -1,0 +1,6 @@
+{
+  "id": "local",
+  "name": "Local",
+  "priority": 10,
+  "description": "Insecure, instant sign-in for local development. Never enable this in production."
+}

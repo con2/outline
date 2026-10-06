@@ -1,0 +1,66 @@
+# Site values live in values-<site>.yaml; this file holds the defaults they share and
+# placeholders that make `helm lint`/`helm template` work. Never deploy it as is.
+
+image:
+  repository: ghcr.io/con2/outline
+  # CI passes the commit sha with --set image.tag.
+  tag: latest
+
+replicas: 1
+
+hostname: outline.example.com
+
+kompassi:
+  baseUrl: https://kompassi.eu
+  # Must equal the team name in the site's database: the authentication provider row is keyed on it.
+  teamName: Con2
+  # Sign-in is refused unless the user is in one of these. They are also the only Kompassi groups
+  # mirrored as Outline groups (together with adminGroups), so a group that should carry
+  # collection permissions belongs here.
+  accessGroups: []
+  adminGroups:
+    - admins
+
+# Secret with keys awsAccessKeyId, awsSecretAccessKey, kompassiClientId, kompassiClientSecret,
+# secretKey, utilsSecretKey (and smtpUsername, smtpPassword when smtp.authenticated). Created
+# out of band, see README.md.
+secretName: outline
+# Secret with keys hostname, database, username, password, in the shape
+# infrastructure/kubernetes/postgres/update-secret.sh writes.
+postgresSecretName: postgres
+
+postgres:
+  # The CloudNativePG cluster serves TLS from its own CA, so require works and verify-full would not.
+  sslMode: require
+
+redis:
+  hostname: redis-ha-haproxy.redis-ha.svc.cluster.local
+  # One Redis database per site on the shared instance.
+  database: 0
+
+s3:
+  endpoint: https://garage.con2.fi
+  # Garage validates the signing region and only accepts this value.
+  region: garage
+  bucket: changeme
+  # Garage has no ACLs; the server omits the x-amz-acl header when this is empty.
+  acl: ""
+  uploadMaxSize: 26214400
+
+smtp:
+  hostname: sr1.pahaip.fi
+  port: 25
+  fromEmail: root@tracon.fi
+  # Upstream defaults to TLS on connect. Port 25 speaks STARTTLS, which false still uses.
+  secure: false
+  authenticated: false
+
+# Web processes per pod; upstream defaults to one per node CPU.
+webConcurrency: 2
+
+# Seconds the old pod keeps serving after it is told to stop, while Traefik stops routing to it.
+preStopSleepSeconds: 10
+
+resources:
+  requests: { cpu: 100m, memory: 512Mi }
+  limits: { memory: 2Gi }
