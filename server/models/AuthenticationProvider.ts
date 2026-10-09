@@ -30,6 +30,7 @@ import Length from "./validators/Length";
 import AzureClient from "plugins/azure/server/azure";
 import GoogleClient from "plugins/google/server/google";
 import OIDCClient from "plugins/oidc/server/oidc";
+import KompassiClient from "plugins/kompassi/server/kompassiClient";
 import type { APIContext } from "@server/types";
 import type { DestroyOptions } from "sequelize";
 
@@ -125,6 +126,8 @@ class AuthenticationProvider extends Model<
         return new AzureClient();
       case "oidc":
         return new OIDCClient();
+      case "kompassi":
+        return new KompassiClient();
       default:
         return undefined;
     }

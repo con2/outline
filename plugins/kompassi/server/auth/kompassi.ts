@@ -19,6 +19,7 @@ const routerPromise: Promise<Router> = (async () => {
     Logger.debug("plugins", "Starting Kompassi OIDC configuration discovery");
 
     const oidcConfig = await fetchOIDCConfiguration(issuerUrl);
+    env.KOMPASSI_TOKEN_URI = oidcConfig.token_endpoint;
     env.KOMPASSI_USERINFO_URI = oidcConfig.userinfo_endpoint;
 
     createKompassiRouter(router, {

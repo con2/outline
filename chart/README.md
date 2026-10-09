@@ -56,7 +56,7 @@ groups, so a group meant to carry collection permissions goes there.
 ## Upgrading Outline
 
 Merge upstream `main` into `con2` (the fork is upstream plus `plugins/kompassi`,
-`plugins/local`, `Dockerfile.con2`, one Attachment override and this chart), bump `appVersion`
+`plugins/local`, `Dockerfile.con2`, an Attachment override, a `kompassi` case in `AuthenticationProvider.oauthClient` and this chart), bump `appVersion`
 in `Chart.yaml`, push. The init container runs the migrations before the new pod takes traffic;
 a failed migration leaves the old ReplicaSet serving. Downgrading after a release with migrations
 means restoring the database; `docs/con2/upgrade-runbook.md` has the full procedure from the

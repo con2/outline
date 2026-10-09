@@ -53,9 +53,10 @@ class KompassiPluginEnvironment extends Environment {
   );
 
   /**
-   * The Kompassi OIDC userinfo endpoint, discovered automatically on boot
-   * from `KOMPASSI_BASE_URL`. Not intended to be set manually.
+   * The Kompassi OIDC token and userinfo endpoints, discovered automatically
+   * on boot from `KOMPASSI_BASE_URL`. Not intended to be set manually.
    */
+  public KOMPASSI_TOKEN_URI: string | undefined;
   public KOMPASSI_USERINFO_URI: string | undefined;
 
   private toGroupList(value: string | undefined): string[] {

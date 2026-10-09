@@ -1,12 +1,12 @@
 import { get } from "es-toolkit/compat";
 import type { AuthenticationProviderSettings } from "@shared/types";
 import { InternalError } from "@server/errors";
-import { request } from "@server/utils/passport";
 import type {
   ExternalGroupData,
   GroupSyncProvider,
 } from "@server/utils/GroupSyncProvider";
 import env from "./env";
+import KompassiClient from "./kompassiClient";
 
 /**
  * Syncs Outline group membership from the `groups` claim Kompassi's OIDC
@@ -27,27 +27,27 @@ export class KompassiGroupSyncProvider implements GroupSyncProvider {
     accessToken: string,
     settings: AuthenticationProviderSettings
   ): Promise<ExternalGroupData[]> {
-    if (!env.KOMPASSI_USERINFO_URI) {
-      throw InternalError(
-        "Kompassi OIDC discovery has not completed yet, cannot sync groups."
-      );
-    }
-
-    const claims = await request<Record<string, unknown>>(
-      "GET",
-      env.KOMPASSI_USERINFO_URI,
-      accessToken
-    );
+    // The client rejects non-2xx responses. An expired token must surface as
+    // an error here: the caller removes the user from every group missing
+    // from the result, so an error body parsed as "no groups" would strip all
+    // of their collection permissions.
+    const claims = await new KompassiClient().userInfo(accessToken);
     const groupNames = get(claims, settings.groupClaim || "groups") as
       | string[]
       | undefined;
+
+    if (!Array.isArray(groupNames)) {
+      throw InternalError(
+        "Kompassi userinfo response did not include a groups claim."
+      );
+    }
 
     const mirrored = new Set([
       ...env.KOMPASSI_ACCESS_GROUPS,
       ...env.KOMPASSI_ADMIN_GROUPS,
     ]);
 
-    return (groupNames ?? [])
+    return groupNames
       .filter((name) => mirrored.has(name))
       .map((name) => ({ id: name, name }));
   }
