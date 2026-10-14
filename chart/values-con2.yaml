@@ -1,0 +1,12 @@
+hostname: outline.con2.fi
+redis:
+  database: 11
+s3:
+  bucket: outline
+kompassi:
+  teamName: Con2
+  accessGroups:
+    - users
+    - con2-staff
+    - conikuvat-staff
+    - larppikuvat-staff

@@ -1,0 +1,13 @@
+hostname: wiki.kotae.fi
+redis:
+  database: 8
+s3:
+  bucket: outlinekotae
+kompassi:
+  teamName: Kotae
+  accessGroups:
+    - turska-kotaeexpo2026-labour-vastaava
+    - turska-kotaeexpo2026-labour-accepted
+    - turska-kotaeexpo2025-labour-vastaava
+    - turska-kotaeexpo2025-labour-accepted
+    - kotaeexpo2026-program-hosts

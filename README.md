@@ -1,3 +1,17 @@
+![Con2 – Collaboration Hub for Volunteer-Run Conventions in Finland](https://con2.fi/media/uploads/2018/08/23/con2_wide_800.png)
+
+# Con2 distribution of Outline (outline.con2.fi)
+
+This is the Con2 distribution of Outline. We extend Outline to provide OIDC authentication against Kompassi (with custom group-based access control and group sync), and provide a production ready Docker/Kubernetes deployment.
+
+- `plugins/kompassi`: the Kompassi sign-in and group-sync plugin.
+- `Dockerfile.con2` and `docker-bake.hcl`: the image, upstream's own Dockerfiles plus an entrypoint.
+- `chart/`: the Helm chart and per-site values, with the deployment runbook in `chart/README.md`.
+- `docs/con2/`: the platform migration plan (Gateway API, Helm, CloudNativePG, Garage).
+
+Original `README.md` follows.
+
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./public/logos/outline-logo-dark.png" height="29">

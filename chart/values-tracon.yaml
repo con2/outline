@@ -1,0 +1,22 @@
+hostname: wiki.tracon.fi
+redis:
+  database: 12
+s3:
+  bucket: outlinetracon
+kompassi:
+  teamName: Tracon
+  accessGroups:
+    - turska-tracon2026-labour-conitea
+    - turska-tracon2026-labour-info
+    - turska-tracon2026-labour-accepted
+    - turska-tracon2027-labour-conitea
+    - turska-tracon2027-labour-info
+    - turska-tracon2027-labour-accepted
+    - tracon2025-program-hosts
+    - tracon2026-program-hosts
+    - turska-hitpoint2024-labour-conitea
+    - turska-hitpoint2024-labour-info
+    - turska-hitpoint2024-labour-accepted
+    - turska-hitpoint2024-programme-hosts
+    - outline-tracon-users
+    - traconry-hallitus-nykyinen

@@ -93,7 +93,10 @@ class Attachment extends IdModel<
    * Whether the attachment is private or not.
    */
   get isPrivate() {
-    return this.acl === "private";
+    // CON2: Garage has no per-object ACLs, so a public-read attachment is not
+    // readable at its canonical URL. Serve every attachment through the
+    // signed redirect instead.
+    return true;
   }
 
   /**

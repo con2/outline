@@ -17,6 +17,7 @@ build
 docker-compose.yml
 node_modules
 .yarn
+chart/
 **/*.test.ts
 **/*.test.tsx
 **/*.test.js
