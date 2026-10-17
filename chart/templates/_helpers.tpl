@@ -67,7 +67,7 @@ field manager owns, so stale inline entries would shadow a ConfigMap forever.
 - name: AWS_S3_ACL
   value: {{ .Values.s3.acl | quote }}
 - name: FILE_STORAGE_UPLOAD_MAX_SIZE
-  value: {{ .Values.s3.uploadMaxSize | quote }}
+  value: {{ .Values.s3.uploadMaxSize | int64 | quote }}
 - name: KOMPASSI_BASE_URL
   value: {{ .Values.kompassi.baseUrl | quote }}
 - name: KOMPASSI_CLIENT_ID
