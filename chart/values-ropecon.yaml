@@ -6,6 +6,7 @@ s3:
 kompassi:
   teamName: Ropecon
   accessGroups:
+    - turska-ropecon2027-labour-conitea
     - turska-ropecon2026-labour-conitea
     - turska-ropecon2026-labour-turvan-sihteerit
     - turska-ropecon2026-labour-info
